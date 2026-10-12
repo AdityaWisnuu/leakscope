@@ -86,6 +86,12 @@ export class ChainContext {
   }
 }
 
+/** A pool crossing yields two events (out of one pool, into another); count transactions. */
+function uniqueTxs(events: ValueEvent[]) {
+  const seen = new Set<string>();
+  return events.filter((e) => !seen.has(e.txid) && seen.add(e.txid));
+}
+
 function scoreForSet(n: number) {
   return n <= 1 ? 5 : n <= 3 ? 25 : n <= 10 ? 50 : n <= 50 ? 75 : 90;
 }
@@ -127,10 +133,10 @@ export function preflight(plan: Plan, ctx: ChainContext): PreflightResult {
   }
 
   // Amount crossing a boundary: how many look-alikes exist?
-  const lookalikes = ctx.similar(plan.amount).filter((e) => !own.has(e.txid));
+  const lookalikes = uniqueTxs(ctx.similar(plan.amount).filter((e) => !own.has(e.txid)));
   const anonymitySet = lookalikes.length + 1;
   let score = scoreForSet(anonymitySet);
-  const dir = plan.to === 'transparent' ? 'leaving' : plan.from === 'transparent' ? 'entering' : 'moving between pools';
+  const dir = plan.to === 'transparent' ? 'leaving' : plan.from === 'transparent' ? 'entering' : 'moving between';
   warnings.push({
     severity: anonymitySet === 1 ? 'high' : anonymitySet <= 10 ? 'medium' : 'low',
     title: `The amount ${fmtZec(plan.amount)} will be public`,
@@ -186,7 +192,7 @@ export function preflight(plan: Plan, ctx: ChainContext): PreflightResult {
   if (!isDenomination(plan.amount)) {
     const { parts, residual } = decompose(plan.amount);
     const plan318 = schedule(parts, ctx.tip);
-    const minSet = Math.min(...parts.map((p) => ctx.similar(p).length + 1));
+    const minSet = Math.min(...parts.map((p) => uniqueTxs(ctx.similar(p)).length + 1));
     suggestions.push({
       title: `Split into ${parts.length} standard ZIP-318 amount${parts.length === 1 ? '' : 's'}, spread over time`,
       detail:
