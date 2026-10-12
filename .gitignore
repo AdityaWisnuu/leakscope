@@ -1,0 +1,5 @@
+node_modules/
+target/
+data/
+.DS_Store
+*.tmp
