@@ -183,7 +183,11 @@ for (const f of findings) {
   }
 }
 fs.mkdirSync(path.join(outDir, 'findings'), { recursive: true });
-for (const [k, list] of shards) fs.writeFileSync(path.join(outDir, 'findings', `${k}.json`), JSON.stringify(list));
+// Every one of the 256 shards exists (possibly empty), so fetching all of them is uniform and quiet.
+for (let i = 0; i < 256; i++) {
+  const k = i.toString(16).padStart(2, '0');
+  fs.writeFileSync(path.join(outDir, 'findings', `${k}.json`), JSON.stringify(shards.get(k) ?? []));
+}
 console.log(`findings/: ${shards.size} shards`);
 
 // The most telling examples of each kind, for the front page.
