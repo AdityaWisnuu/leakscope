@@ -21,7 +21,8 @@ function setText(f: Finding) {
   return f.anonymitySet === 1 ? '1 — fully linked' : `${f.anonymitySet} plausible sources`;
 }
 
-export function FindingCard({ f, focus }: { f: Finding; focus?: string }) {
+/** `mainnet` false: no mainnet lookup or explorer links (testnet findings). */
+export function FindingCard({ f, focus, mainnet = true }: { f: Finding; focus?: string; mainnet?: boolean }) {
   const others = f.txids.filter((t) => t !== focus);
   const set = setText(f);
   return (
@@ -51,7 +52,7 @@ export function FindingCard({ f, focus }: { f: Finding; focus?: string }) {
             <dt>{focus ? (others.length === 1 ? 'Linked tx' : 'Linked txs') : 'Transactions'}</dt>
             <dd className="stack" style={{ gap: 4 }}>
               {others.slice(0, 12).map((t) => (
-                <TxRef key={t} txid={t} />
+                <TxRef key={t} txid={t} check={mainnet} explorer={mainnet} />
               ))}
               {others.length > 12 && <span className="dim small">and {others.length - 12} more</span>}
             </dd>

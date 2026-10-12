@@ -315,7 +315,7 @@ function ReportView({ r }: { r: Report }) {
             )}
           </div>
           {r.findings.get(t)!.map((f, i) => (
-            <FindingCard key={i} f={f} focus={t} />
+            <FindingCard key={i} f={f} focus={t} mainnet={r.network === 'main'} />
           ))}
         </section>
       ))}
