@@ -131,10 +131,16 @@ const summary = {
 const evByTx = new Map<string, ValueEvent>();
 for (const e of events) if (!evByTx.has(e.txid)) evByTx.set(e.txid, e);
 const pick = (e: ValueEvent | undefined) => e && { txid: e.txid, h: e.h, amount: e.amount, from: e.from, to: e.to };
-const links = findings
+const allLinks = findings
   .filter((f) => ['utxo-roundtrip', 'address-reuse', 'quick-roundtrip', 'amount-link'].includes(f.kind) && f.txids.length === 2)
   .map((f) => ({ kind: f.kind, severity: f.severity, set: f.anonymitySet ?? 1, a: pick(evByTx.get(f.txids[0])), b: pick(evByTx.get(f.txids[1])), title: f.title }))
   .filter((l) => l.a && l.b);
+// Keep every deterministic link, then the rest sampled evenly over time, so the drawing stays light.
+const MAX_LINKS = 6000;
+const strong = allLinks.filter((l) => l.severity === 'critical' || l.set === 1);
+const weak = allLinks.filter((l) => !(l.severity === 'critical' || l.set === 1));
+const stride = Math.max(1, Math.ceil(weak.length / Math.max(1, MAX_LINKS - strong.length)));
+const links = [...strong.slice(0, MAX_LINKS), ...weak.filter((_, i) => i % stride === 0)].slice(0, MAX_LINKS);
 
 // Columnar boundary-event index so the browser can run pre-flight without a server.
 const POOL = { transparent: 0, sapling: 1, orchard: 2, ironwood: 3 } as const;
@@ -158,6 +164,26 @@ write('days.json', [...days.values()].sort((a, b) => a.day - b.day));
 write('links.json', links);
 write('event-index.json', index);
 write('boundary-addresses.json', addresses);
-write('findings.json', findings.filter((f) => f.severity !== 'info'));
+// Per-transaction lookup without shipping every finding: shard by the first txid byte.
+const shards = new Map<string, Finding[]>();
+for (const f of findings) {
+  for (const t of new Set(f.txids)) {
+    const k = t.slice(0, 2);
+    shards.set(k, [...(shards.get(k) ?? []), f]);
+  }
+}
+fs.mkdirSync(path.join(outDir, 'findings'), { recursive: true });
+for (const [k, list] of shards) fs.writeFileSync(path.join(outDir, 'findings', `${k}.json`), JSON.stringify(list));
+console.log(`findings/: ${shards.size} shards`);
+
+// The most telling examples of each kind, for the front page.
+const examples: Record<string, Finding[]> = {};
+for (const kind of ['utxo-roundtrip', 'address-reuse', 'quick-roundtrip', 'amount-link', 'pool-crossing', 'fee-fingerprint']) {
+  examples[kind] = findings
+    .filter((f) => f.kind === kind && (f.anonymitySet ?? 1) <= 1)
+    .sort((a, b) => (b.amount ?? 0) - (a.amount ?? 0))
+    .slice(0, 12);
+}
+write('examples.json', examples);
 console.log(JSON.stringify(summary, null, 1));
 console.log(`analysis ${Math.round(performance.now() - t0)} ms`);
