@@ -1,5 +1,5 @@
 // Turns indexer output into the static data the web observatory renders.
-// usage: bun scripts/report.ts <outdir> <txs_*.jsonl ...>
+// usage: bun scripts/report.ts [--report-from H] [--network main|test] <outdir> <txs_*.jsonl ...>
 import fs from 'node:fs';
 import path from 'node:path';
 import { analyze, isDenomination, type Finding, type TxRecord, type ValueEvent } from '../src';
@@ -9,6 +9,10 @@ import { analyze, isDenomination, type Finding, type TxRecord, type ValueEvent }
 const argv = process.argv.slice(2);
 const rf = argv.indexOf('--report-from');
 const reportFrom = rf >= 0 ? +argv.splice(rf, 2)[1] : 0;
+// --network test: decode testnet transparent addresses (t2…/tm…) instead of mainnet ones.
+const nf = argv.indexOf('--network');
+const network = nf >= 0 ? (argv.splice(nf, 2)[1] as 'main' | 'test') : 'main';
+if (network !== 'main' && network !== 'test') throw new Error(`--network must be main or test, got ${network}`);
 const [outDir, ...files] = argv;
 fs.mkdirSync(outDir, { recursive: true });
 
@@ -71,7 +75,7 @@ function* records(): Generator<TxRecord> {
 }
 
 const t0 = performance.now();
-const all = analyze(records());
+const all = analyze(records(), { network });
 const findings = all.findings.filter((f) => (f.h ?? 0) >= reportFrom);
 const events = all.events.filter((e) => e.h >= reportFrom);
 const outSets = all.outSets.filter((s) => s.event.h >= reportFrom);
@@ -151,6 +155,12 @@ const index = {
   dir: events.map((e) => (e.dir === 'in' ? 1 : 0)),
   from: events.map((e) => POOL[e.from]),
   to: events.map((e) => POOL[e.to]),
+  // Transaction ordinal: events of one transaction (a crossing's out + in, a deshielding's
+  // outputs) share it, so look-alikes are counted per transaction as the engine does.
+  tx: (() => {
+    let k = -1, prev = '';
+    return events.map((e) => (e.txid !== prev ? ((prev = e.txid), ++k) : k));
+  })(),
 };
 const addresses = [...new Set(events.flatMap((e) => e.addrs))];
 
