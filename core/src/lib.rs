@@ -3,6 +3,10 @@
 //! This is deliberately the *observer's* view: only what anyone holding the raw
 //! transaction can learn, with no keys involved. Leak detectors run on top of it.
 
+pub mod scan;
+#[cfg(feature = "wasm")]
+mod wasm;
+
 use serde::Serialize;
 use std::io::Cursor;
 use zcash_primitives::transaction::Transaction;

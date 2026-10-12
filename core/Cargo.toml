@@ -19,7 +19,25 @@ orchard = { version = "0.16", default-features = false }
 hex = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Viewing-key scanning (compact trial decryption). No circuit/multicore features: keeps
+# the dependency tree buildable for wasm32-unknown-unknown and the WASM small.
+zcash_keys = { version = "=0.17.0-pre.1", default-features = false, features = ["std", "sapling", "orchard"] }
+sapling = { package = "sapling-crypto", version = "0.9", default-features = false, features = ["std"] }
+zcash_note_encryption = "0.5.1"
+prost = { version = "0.14", default-features = false, features = ["derive", "std"] }
+
+# Only for the `wasm` feature (browser + Node bindings).
+wasm-bindgen = { version = "0.2", optional = true }
+serde-wasm-bindgen = { version = "0.6", optional = true }
+
+[features]
+default = []
+wasm = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen"]
 
 [profile.release]
 opt-level = "s"
 lto = true
+
+[dev-dependencies]
+zcash_keys = { version = "=0.17.0-pre.1", default-features = false, features = ["std", "sapling", "orchard", "test-dependencies"] }
+rand = "0.10"
