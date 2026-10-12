@@ -2,6 +2,7 @@
 // leakscope — what a Zcash transaction reveals, before and after you send it.
 //
 //   leakscope check <txid> [--testnet] [--data <dir>]
+//   leakscope scan --from <height> [--to <height>] [--data <dir>]   (key via LEAKSCOPE_UFVK or --ufvk-file)
 //   leakscope plan --from <pool> --to <pool> --amount <ZEC> [--to-address t1…] [--from-address t1…] [--data <dir>]
 //
 // <pool> is one of: transparent, sapling, orchard, ironwood.
@@ -108,6 +109,41 @@ async function check() {
   console.log();
 }
 
+async function scan() {
+  const keyFile = flag('ufvk-file');
+  const ufvk = keyFile ? fs.readFileSync(keyFile, 'utf8').trim() : process.env.LEAKSCOPE_UFVK;
+  const from = Number(flag('from'));
+  const to = flag('to') ?? 'tip';
+  const data = flag('data');
+  if (!ufvk || !(from >= 0)) {
+    throw new Error('usage: LEAKSCOPE_UFVK=uview… leakscope scan --from <birthday height> [--to <height>] [--data dir]\n' +
+      '(the key is read from the environment or --ufvk-file so it never lands in shell history or `ps`)');
+  }
+  // @ts-ignore: plain ESM module without types
+  const { scanWallet } = await import('../../indexer/scan-wallet.mjs');
+  console.error(C.dim(`scanning from ${from} with the key held in this process only…`));
+  const r = await scanWallet({ ufvk, from, to, onProgress: (h: number) => process.stderr.write(C.dim(`\r  height ${h}`)) });
+  process.stderr.write('\n');
+  const mine = new Set<string>(r.txs.map((t: { txid: string }) => t.txid));
+  console.log(C.bold(`\n${r.txs.length} wallet transactions`) + C.dim(` in blocks ${r.from}–${r.to} (${r.stats.blocksPerSec} blocks/s)`));
+
+  const records = loadRecords(data);
+  if (!records.length) {
+    console.log(C.dim('  pass --data <indexer output covering this range> to see which of them leak'));
+    for (const t of r.txs) console.log(`  ${t.height} ${t.txid} ${t.pools.join('+')}`);
+    return;
+  }
+  const net = r.network === 'test' ? 'test' : 'main';
+  const findings = analyze(records, { network: net }).findings.filter((f) => f.txids.some((t) => mine.has(t)));
+  const worst = ['critical', 'high', 'medium', 'low', 'info'].find((s) => findings.some((f) => f.severity === s));
+  const leaking = new Set(findings.filter((f) => f.severity !== 'info').flatMap((f) => f.txids.filter((t) => mine.has(t))));
+  console.log(`  ${leaking.size} of them leak something` + (worst ? `; worst: ${C.sev(worst, worst)}` : ''));
+  console.log(C.bold('\nYour leaks'));
+  if (!findings.length) console.log('  none found in the indexed data');
+  printFindings(findings.sort((a, b) => ['critical', 'high', 'medium', 'low', 'info'].indexOf(a.severity) - ['critical', 'high', 'medium', 'low', 'info'].indexOf(b.severity)));
+  console.log();
+}
+
 async function plan() {
   const from = flag('from') as Pool;
   const to = flag('to') as Pool;
@@ -139,6 +175,7 @@ async function plan() {
 try {
   if (cmd === 'check') await check();
   else if (cmd === 'plan') await plan();
+  else if (cmd === 'scan') await scan();
   else {
     console.log('leakscope check <txid> [--testnet] [--data dir]\nleakscope plan --from <pool> --to <pool> --amount <ZEC> [--to-address t…] [--data dir]');
     process.exitCode = cmd ? 1 : 0;
