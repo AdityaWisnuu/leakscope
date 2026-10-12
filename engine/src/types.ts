@@ -38,6 +38,8 @@ export interface ValueEvent {
   amount: number;
   /** Transparent addresses on the transparent side, when known. */
   addrs: string[];
+  /** Fee paid by this event's transaction, when every input value is known. */
+  fee?: number | null;
 }
 
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';

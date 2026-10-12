@@ -12,6 +12,12 @@ export interface Summary {
   shieldTxs: number;
   linkableDeshields: number;
   linkableDeshieldsPct: number;
+  /** Withdrawals linked back to their deposit or forward into a re-shielding. */
+  deshieldsLinkedAnyWay: number;
+  deshieldsLinkedAnyWayPct: number;
+  /** Calibrated amount-link tiers, with measured precision. */
+  amountLinks: Record<string, { severity: Severity; precision: number; label: string; count: number }>;
+  roundTripPaths?: { paths: Record<string, { count: number; zec: number }>; within10Blocks: number };
   roundTrips: number;
   addressReuse: number;
   feeFingerprints: number;

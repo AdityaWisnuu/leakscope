@@ -1,0 +1,130 @@
+{
+ "generatedAt": "2026-10-12T16:50:07.082Z",
+ "reportFrom": 3428143,
+ "rows": [
+  {
+   "label": "all withdrawals",
+   "window": 100,
+   "outs": 93400,
+   "forwardUnique": 5586,
+   "reverseUnique": 356,
+   "fdr": 6.4
+  },
+  {
+   "label": "all withdrawals",
+   "window": 1152,
+   "outs": 92417,
+   "forwardUnique": 6626,
+   "reverseUnique": 1485,
+   "fdr": 22.4
+  },
+  {
+   "label": "all withdrawals",
+   "window": 8064,
+   "outs": 85514,
+   "forwardUnique": 8876,
+   "reverseUnique": 4283,
+   "fdr": 48.3
+  },
+  {
+   "label": "all withdrawals",
+   "window": 34560,
+   "outs": 44262,
+   "forwardUnique": 4133,
+   "reverseUnique": 2284,
+   "fdr": 55.3
+  },
+  {
+   "label": "non-round amounts",
+   "window": 100,
+   "outs": 55943,
+   "forwardUnique": 5440,
+   "reverseUnique": 256,
+   "fdr": 4.7
+  },
+  {
+   "label": "non-round amounts",
+   "window": 576,
+   "outs": 55573,
+   "forwardUnique": 5716,
+   "reverseUnique": 567,
+   "fdr": 9.9
+  },
+  {
+   "label": "non-round amounts",
+   "window": 1152,
+   "outs": 55263,
+   "forwardUnique": 5839,
+   "reverseUnique": 747,
+   "fdr": 12.8
+  },
+  {
+   "label": "non-round amounts",
+   "window": 8064,
+   "outs": 50993,
+   "forwardUnique": 6400,
+   "reverseUnique": 1687,
+   "fdr": 26.4
+  },
+  {
+   "label": "non-round amounts",
+   "window": 34560,
+   "outs": 26661,
+   "forwardUnique": 3110,
+   "reverseUnique": 623,
+   "fdr": 20
+  },
+  {
+   "label": "round amounts (0.001 ZEC multiples)",
+   "window": 10,
+   "outs": 37496,
+   "forwardUnique": 48,
+   "reverseUnique": 6,
+   "fdr": 12.5
+  },
+  {
+   "label": "round amounts (0.001 ZEC multiples)",
+   "window": 100,
+   "outs": 37457,
+   "forwardUnique": 146,
+   "reverseUnique": 100,
+   "fdr": 68.5
+  },
+  {
+   "label": "round amounts (0.001 ZEC multiples)",
+   "window": 576,
+   "outs": 37315,
+   "forwardUnique": 474,
+   "reverseUnique": 436,
+   "fdr": 92
+  },
+  {
+   "label": "round amounts (0.001 ZEC multiples)",
+   "window": 1152,
+   "outs": 37154,
+   "forwardUnique": 787,
+   "reverseUnique": 738,
+   "fdr": 93.8
+  }
+ ],
+ "tiers": {
+  "fast": {
+   "forward": 2535,
+   "reverse": 1,
+   "precision": 100,
+   "current": 99
+  },
+  "day": {
+   "forward": 128,
+   "reverse": 19,
+   "precision": 85.2,
+   "current": 85
+  },
+  "fast-round": {
+   "forward": 13,
+   "reverse": 0,
+   "precision": 100,
+   "current": 90
+  }
+ }
+}

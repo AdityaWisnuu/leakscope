@@ -2,7 +2,7 @@
 // usage: bun scripts/report.ts [--report-from H] [--network main|test] <outdir> <txs_*.jsonl ...>
 import fs from 'node:fs';
 import path from 'node:path';
-import { analyze, isDenomination, type Finding, type TxRecord, type ValueEvent } from '../src';
+import { analyze, CALIBRATION, isDenomination, type Finding, type TxRecord, type ValueEvent } from '../src';
 
 // Blocks before --report-from only warm up the observer's memory (so the first deposits
 // seen aren't mistaken for unique ones); they are not counted.
@@ -92,14 +92,21 @@ for (const e of events) {
     d.deshields++;
   }
 }
-const uniquelyLinked = outSets.filter((s) => s.candidates.length === 1);
+// A withdrawal counts as linked back to its deposit when a calibrated amount link points at
+// it — not merely when its amount happens to be unique.
+const outEvent = new Map(events.filter((e) => e.dir === 'out' && e.to === 'transparent').map((e) => [e.txid, e]));
 const linkedTx = new Set<string>();
-for (const s of uniquelyLinked) {
-  if (s.event.to !== 'transparent' || linkedTx.has(s.event.txid)) continue;
+for (const f of findings) {
+  if (f.kind !== 'quick-roundtrip' && f.kind !== 'amount-link') continue;
+  const s = { event: outEvent.get(f.txids[1]) };
+  if (!s.event || linkedTx.has(s.event.txid)) continue;
   linkedTx.add(s.event.txid);
   const d = dayOf(s.event.h);
   if (d) d.linkedOuts++;
 }
+
+const linkedAnyWay = new Set(linkedTx);
+for (const f of findings) if (f.kind === 'utxo-roundtrip' && outEvent.has(f.txids[0])) linkedAnyWay.add(f.txids[0]);
 
 const heightOf = new Map(all.events.map((e) => [e.txid, e.h]));
 const count = (pred: (f: Finding) => boolean) => findings.filter(pred).length;
@@ -148,6 +155,12 @@ const summary = {
   /** Withdrawals whose amount matches exactly one earlier deposit. */
   linkableDeshields: linkedTx.size,
   linkableDeshieldsPct: +((100 * linkedTx.size) / Math.max(1, deshieldTxs)).toFixed(1),
+  /** Withdrawals linked backwards (to their deposit) or forwards (re-shielded as-is). */
+  deshieldsLinkedAnyWay: linkedAnyWay.size,
+  deshieldsLinkedAnyWayPct: +((100 * linkedAnyWay.size) / Math.max(1, deshieldTxs)).toFixed(1),
+  amountLinks: Object.fromEntries(
+    Object.entries(CALIBRATION).map(([tier, c]) => [tier, { ...c, count: findings.filter((f) => (f.kind === 'quick-roundtrip' || f.kind === 'amount-link') && f.detail.includes(c.label)).length }]),
+  ),
   roundTrips: count((f) => f.kind === 'utxo-roundtrip'),
   roundTripAddresses: concentration('utxo-roundtrip'),
   roundTripPaths: roundTripPaths(),

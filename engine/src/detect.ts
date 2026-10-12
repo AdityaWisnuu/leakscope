@@ -15,13 +15,42 @@ export const DEFAULTS: DetectOptions = { windowBlocks: 1152 * 30, maxFeeGap: 250
 export const ZEC = 100_000_000;
 export const fmtZec = (z: number) => `${(z / ZEC).toFixed(8).replace(/0+$/, '').replace(/\.$/, '')} ZEC`;
 
-/** Gap between a deposit and a withdrawal that an ordinary ZIP-317 fee explains. */
-function feeExplains(gap: number, maxFeeGap: number) {
-  return gap === 0 || (gap > 0 && gap <= maxFeeGap && gap % 5000 === 0);
+/**
+ * Could this deposit be the note this withdrawal spent in full?
+ *
+ * When a withdrawal empties one note, deposit = amount out + the withdrawal's own fee, exactly.
+ * That fee is public, so the match is pinned to a single value. Only when the fee can't be
+ * computed do we fall back to "some plausible ZIP-317 fee", which matches far more by chance.
+ */
+export function depositMatches(depositAmount: number, out: ValueEvent, maxFeeGap = DEFAULTS.maxFeeGap) {
+  const gap = depositAmount - out.amount;
+  if (out.fee != null) return gap === out.fee;
+  return gap > 0 && gap <= maxFeeGap && gap % 5000 === 0;
 }
 
-function severityForSet(n: number): Severity {
-  return n === 1 ? 'high' : n <= 3 ? 'medium' : n <= 10 ? 'low' : 'info';
+export type LinkTier = 'fast' | 'day' | 'fast-round';
+
+/**
+ * How often a unique amount match is a real link, by tier. Measured on mainnet blocks
+ * 3,428,143–3,515,250 with scripts/evaluate.ts: the same rule applied backwards in time
+ * (deposits AFTER the withdrawal) can only find coincidences, which estimates false links.
+ */
+export const CALIBRATION: Record<LinkTier, { severity: Severity; precision: number; label: string }> = {
+  // 2,535 links, 1 coincidence.
+  fast: { severity: 'high', precision: 99, label: 'non-round amount, within 100 blocks' },
+  // 128 links, 19 coincidences.
+  day: { severity: 'medium', precision: 85, label: 'non-round amount, within a day' },
+  // 13 links, 0 coincidences: small sample, so stated conservatively.
+  'fast-round': { severity: 'medium', precision: 90, label: 'round amount, within 10 blocks' },
+};
+// Beyond a day, a unique non-round match was a coincidence more often than not (447 links vs
+// 603 coincidences), so it is not reported at all.
+
+/** Round amounts (multiples of 0.001 ZEC) collide by chance, so they only count when nearly immediate. */
+export function linkTier(blocks: number, amount: number): LinkTier | null {
+  const round = amount % 100_000 === 0;
+  if (round) return blocks <= 10 ? 'fast-round' : null;
+  return blocks <= 100 ? 'fast' : blocks <= 1152 ? 'day' : null;
 }
 
 export interface Analysis {
@@ -150,27 +179,27 @@ export function analyze(records: Iterable<TxRecord>, opts: Partial<DetectOptions
       const cand = ins[i];
       if (cand.txid === out.txid || cand.h >= out.h || out.h - cand.h > o.windowBlocks) continue;
       if (cand.to !== out.from) continue;
-      if (feeExplains(cand.amount - out.amount, o.maxFeeGap)) candidates.push(cand);
+      if (depositMatches(cand.amount, out, o.maxFeeGap)) candidates.push(cand);
     }
     if (candidates.length === 0) continue;
     outSets.push({ event: out, candidates });
-    const n = candidates.length;
-    if (n > 10) continue;
-    const first = candidates.sort((a, b) => a.h - b.h)[0];
-    const blocks = out.h - first.h;
+    // Only a single plausible source is a link; with several, the observer is guessing.
+    if (candidates.length !== 1) continue;
+    const src = candidates[0];
+    const blocks = out.h - src.h;
+    const tier = linkTier(blocks, out.amount);
+    if (!tier) continue;
+    const t = CALIBRATION[tier];
     findings.push({
-      kind: n === 1 && blocks <= 100 ? 'quick-roundtrip' : 'amount-link',
-      severity: severityForSet(n),
-      txids: n === 1 ? [first.txid, out.txid] : [...candidates.map((c) => c.txid), out.txid],
-      title:
-        n === 1
-          ? `Withdrawal of ${fmtZec(out.amount)} matches exactly one earlier deposit (${blocks} blocks before)`
-          : `Withdrawal of ${fmtZec(out.amount)} matches only ${n} earlier deposits`,
+      kind: blocks <= 100 ? 'quick-roundtrip' : 'amount-link',
+      severity: t.severity,
+      txids: [src.txid, out.txid],
+      title: `Withdrawal of ${fmtZec(out.amount)} matches exactly one earlier deposit (${blocks} blocks before)`,
       detail:
-        `Within the observation window, only ${n} value${n === 1 ? '' : 's'} entering the ${out.from} pool ` +
-        'equal this amount plus a standard fee. An observer can guess the source with ' +
-        `${Math.round(100 / n)}% confidence without breaking any cryptography.`,
-      anonymitySet: n,
+        `Only one value entered the ${out.from} pool in the previous ${Math.round(o.windowBlocks / 1152)} days ` +
+        `that equals this withdrawal plus its own fee. Measured on mainnet, links of this kind ` +
+        `(${t.label}) are right about ${t.precision}% of the time — no cryptography is broken, only amounts are matched.`,
+      anonymitySet: 1,
       amount: out.amount,
       h: out.h,
     });

@@ -57,8 +57,8 @@ export default function Observatory() {
         </span>
         <div className="hero-grid">
           <SplitHeadline className="hero-big">
-            <span className="figure">{s.linkableDeshieldsPct}%</span> of withdrawals{' '}
-            {sinceLaunch ? 'since Ironwood launched' : 'in this range'} point back to a single deposit.
+            <span className="figure">{s.deshieldsLinkedAnyWayPct}%</span> of withdrawals{' '}
+            {sinceLaunch ? 'since Ironwood launched' : 'in this range'} can be traced.
           </SplitHeadline>
           <div className="hero-side">
             <p>
@@ -67,8 +67,11 @@ export default function Observatory() {
             </p>
             <p>
               Of <strong className="num">{num(s.deshieldTxs)}</strong> transactions that withdrew to transparent
-              addresses, <strong className="num">{num(s.linkableDeshields)}</strong> carry an amount that matches
-              exactly one earlier deposit, minus a standard fee. No cryptography was broken. Leakscope plays that
+              addresses, <strong className="num">{num(s.linkableDeshields)}</strong> match exactly one earlier
+              deposit plus their own fee, and{' '}
+              <strong className="num">{num(s.deshieldsLinkedAnyWay - s.linkableDeshields)}</strong> more were spent
+              straight back into a pool. No cryptography was broken, and we{' '}
+              <Link href="/method/#accuracy">measured how often these links are wrong</Link>. Leakscope plays that
               observer, so you can see what it sees before you transact.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 24 }}>

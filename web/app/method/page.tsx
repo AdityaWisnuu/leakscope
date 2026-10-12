@@ -132,14 +132,50 @@ export default function MethodPage() {
           </div>
           <p>
             A <strong>candidate deposit</strong> for a withdrawal is a boundary event that entered the same pool the
-            withdrawal leaves, earlier and within the window, with an amount equal to the withdrawal plus a plausible
-            fee. The <strong>anonymity set</strong> is the number of such candidates: how many indistinguishable
-            sources the observer has to choose between. A set of 1 means the observer has exactly one guess.
+            withdrawal leaves, earlier and within the window, whose amount equals the withdrawal{' '}
+            <em>plus that withdrawal&apos;s own fee</em>. The fee is public, so this pins the match to one exact value:
+            it is what you see when someone withdraws a whole note they deposited. The <strong>anonymity set</strong>{' '}
+            is the number of such candidates. A set of 1 means the observer has exactly one guess.
+          </p>
+
+          <h2 id="accuracy">How often is a link wrong?</h2>
+          <p>
+            A unique match can still be a coincidence. To measure that, we ran the exact same rule{' '}
+            <strong>backwards in time</strong>: against deposits made <em>after</em> each withdrawal. Money cannot
+            leave before it arrives, so every backward match is a coincidence, and it occurs at the same rate as
+            coincidences among the forward matches. That gives a false-link rate measured on the chain&apos;s real
+            amount distribution, not on a model of it.
+          </p>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Link</th>
+                  <th>Found in range</th>
+                  <th>Measured precision</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(s.amountLinks ?? {}).map(([tier, t]) => (
+                  <tr key={tier}>
+                    <td>{t.label}</td>
+                    <td className="num">{num(t.count)}</td>
+                    <td className="num">≈{t.precision}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p>
+            What we dropped because it failed this test: unique matches more than a day apart (more backward
+            coincidences than forward links) and round amounts (multiples of 0.001 ZEC) more than 10 blocks apart.
+            Round trips and address reuse need no such test: they follow the actual coins. Reproduce it with{' '}
+            <code>engine/scripts/evaluate.ts</code>.
           </p>
           <p>
-            The headline figure, <strong>{s.linkableDeshieldsPct}%</strong>, is the share of deshielding transactions
-            with at least one output whose anonymity set is exactly 1 ({num(s.linkableDeshields)} of{' '}
-            {num(s.deshieldTxs)}).
+            The headline, <strong>{s.deshieldsLinkedAnyWayPct}%</strong>, is the share of deshielding transactions
+            that are linked either backwards by a calibrated amount link ({num(s.linkableDeshields)}) or forwards by a
+            round trip ({num(s.deshieldsLinkedAnyWay - s.linkableDeshields)} more), out of {num(s.deshieldTxs)}.
           </p>
 
           <h2 id="assumptions">Assumptions</h2>
@@ -149,9 +185,10 @@ export default function MethodPage() {
               The observer looks this far back for a matching deposit.
             </li>
             <li>
-              <strong>Fee gap:</strong> a deposit matches a withdrawal if it is larger by 0 to{' '}
-              {num(DEFAULTS.maxFeeGap)} zatoshis in multiples of 5,000 (the ZIP-317 marginal fee). Arbitrary gaps are
-              not matched.
+              <strong>Fee gap:</strong> a deposit matches a withdrawal only if it is larger by exactly the
+              withdrawal&apos;s own fee. In the rare case the fee can&apos;t be computed, any gap up to{' '}
+              {num(DEFAULTS.maxFeeGap)} zatoshis in multiples of 5,000 (the ZIP-317 marginal fee) is accepted. Pre-flight
+              uses this looser rule on purpose: it estimates the crowd an amount hides in, before any fee exists.
             </li>
             <li>
               <strong>Direction:</strong> the deposit must precede the withdrawal and enter the pool the withdrawal

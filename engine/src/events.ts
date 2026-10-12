@@ -44,7 +44,7 @@ export function valueEvents(r: TxRecord, outputs: OutputIndex): ValueEvent[] {
   const sum = vb.sapling + vb.orchard + vb.ironwood;
   const receiving = SHIELDED.filter((p) => vb[p] < 0).sort((a, b) => vb[a] - vb[b]);
   const sending = SHIELDED.filter((p) => vb[p] > 0).sort((a, b) => vb[b] - vb[a]);
-  const base = { txid: r.txid, h: r.h, time: r.time };
+  const base = { txid: r.txid, h: r.h, time: r.time, fee: paidFee(r, outputs) };
   const events: ValueEvent[] = [];
 
   if (r.vin.length > 0 && sum < 0) {
