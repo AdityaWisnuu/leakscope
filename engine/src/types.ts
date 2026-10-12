@@ -56,6 +56,8 @@ export interface Finding {
   amount?: number;
   /** Height of the latest transaction involved: when the leak became observable. */
   h?: number;
+  /** Transparent addresses that carry the link, when the leak runs through one. */
+  addresses?: string[];
 }
 
 export type FindingKind =

@@ -71,6 +71,7 @@ export function analyze(records: Iterable<TxRecord>, opts: Partial<DetectOptions
             anonymitySet: 1,
             amount: e.amount,
             h: r.h,
+            addresses: [...new Set(spent.map((x) => x!.addr))],
           });
         } else {
           const reused = e.addrs.map((a) => deshieldedTo.get(a)).find((x) => x && x.txid !== r.txid);
@@ -86,6 +87,7 @@ export function analyze(records: Iterable<TxRecord>, opts: Partial<DetectOptions
               anonymitySet: 1,
               amount: e.amount,
               h: r.h,
+              addresses: [e.addrs[0]],
             });
           }
         }

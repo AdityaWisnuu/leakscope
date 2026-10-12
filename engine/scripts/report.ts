@@ -101,7 +101,39 @@ for (const s of uniquelyLinked) {
   if (d) d.linkedOuts++;
 }
 
+const heightOf = new Map(all.events.map((e) => [e.txid, e.h]));
 const count = (pred: (f: Finding) => boolean) => findings.filter(pred).length;
+/** Which pools the coins came from and went back into, and how much value the links expose. */
+function roundTripPaths() {
+  const fromPool = new Map<string, string>();
+  const toPool = new Map<string, string>();
+  for (const e of all.events) {
+    if (e.dir === 'out' && e.to === 'transparent') fromPool.set(e.txid, e.from);
+    if (e.dir === 'in' && e.from === 'transparent') toPool.set(e.txid, e.to);
+  }
+  const paths: Record<string, { count: number; zec: number }> = {};
+  let within10 = 0;
+  for (const f of findings) {
+    if (f.kind !== 'utxo-roundtrip') continue;
+    const k = `${fromPool.get(f.txids[0]) ?? '?'} → transparent → ${toPool.get(f.txids[1]) ?? '?'}`;
+    paths[k] ??= { count: 0, zec: 0 };
+    paths[k].count++;
+    paths[k].zec += (f.amount ?? 0) / 1e8;
+    const out = all.events.length && heightOf.get(f.txids[0]);
+    if (out !== undefined && f.h !== undefined && f.h - out <= 10) within10++;
+  }
+  for (const v of Object.values(paths)) v.zec = Math.round(v.zec);
+  return { paths, within10Blocks: within10 };
+}
+
+/** How spread out a kind of finding is across addresses: one busy service vs. many users. */
+function concentration(kind: Finding['kind']) {
+  const per = new Map<string, number>();
+  for (const f of findings) if (f.kind === kind) for (const a of f.addresses ?? []) per.set(a, (per.get(a) ?? 0) + 1);
+  const top = [...per.values()].sort((a, b) => b - a)[0] ?? 0;
+  const total = count((f) => f.kind === kind);
+  return { distinct: per.size, topAddressShare: +((100 * top) / Math.max(1, total)).toFixed(1) };
+}
 const crossings = events.filter((e) => e.dir === 'in' && e.from !== 'transparent');
 const migrations = crossings.filter((e) => e.from === 'orchard' && e.to === 'ironwood');
 const deshieldTxs = outsByTx.size;
@@ -117,7 +149,10 @@ const summary = {
   linkableDeshields: linkedTx.size,
   linkableDeshieldsPct: +((100 * linkedTx.size) / Math.max(1, deshieldTxs)).toFixed(1),
   roundTrips: count((f) => f.kind === 'utxo-roundtrip'),
+  roundTripAddresses: concentration('utxo-roundtrip'),
+  roundTripPaths: roundTripPaths(),
   addressReuse: count((f) => f.kind === 'address-reuse'),
+  addressReuseAddresses: concentration('address-reuse'),
   feeFingerprints: count((f) => f.kind === 'fee-fingerprint'),
   migrations: {
     count: migrations.length,
@@ -139,12 +174,20 @@ const allLinks = findings
   .filter((f) => ['utxo-roundtrip', 'address-reuse', 'quick-roundtrip', 'amount-link'].includes(f.kind) && f.txids.length === 2)
   .map((f) => ({ kind: f.kind, severity: f.severity, set: f.anonymitySet ?? 1, a: pick(evByTx.get(f.txids[0])), b: pick(evByTx.get(f.txids[1])), title: f.title }))
   .filter((l) => l.a && l.b);
-// Keep every deterministic link, then the rest sampled evenly over time, so the drawing stays light.
+// Spread the drawn links evenly over the days, strongest first within each day, so the
+// picture shows how linkage evolves rather than only its first weeks.
 const MAX_LINKS = 6000;
-const strong = allLinks.filter((l) => l.severity === 'critical' || l.set === 1);
-const weak = allLinks.filter((l) => !(l.severity === 'critical' || l.set === 1));
-const stride = Math.max(1, Math.ceil(weak.length / Math.max(1, MAX_LINKS - strong.length)));
-const links = [...strong.slice(0, MAX_LINKS), ...weak.filter((_, i) => i % stride === 0)].slice(0, MAX_LINKS);
+const rank = (l: (typeof allLinks)[number]) => (l.severity === 'critical' ? 0 : l.set === 1 ? 1 : 2 + l.set);
+const byDay = new Map<number, typeof allLinks>();
+for (const l of allLinks) {
+  const d = Math.floor((l.b!.h - 3_428_143) / BLOCKS_PER_DAY);
+  byDay.set(d, [...(byDay.get(d) ?? []), l]);
+}
+for (const list of byDay.values()) list.sort((x, y) => rank(x) - rank(y));
+const links: typeof allLinks = [];
+for (let i = 0; links.length < MAX_LINKS && links.length < allLinks.length; i++) {
+  for (const list of byDay.values()) if (i < list.length && links.length < MAX_LINKS) links.push(list[i]);
+}
 
 // Columnar boundary-event index so the browser can run pre-flight without a server.
 const POOL = { transparent: 0, sapling: 1, orchard: 2, ironwood: 3 } as const;
