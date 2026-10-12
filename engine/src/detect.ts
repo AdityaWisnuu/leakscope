@@ -1,4 +1,5 @@
 import { conventionalFee, OutputIndex, paidFee, valueEvents } from './events';
+import { isDenomination } from './zip318';
 import type { Finding, Severity, TxRecord, ValueEvent } from './types';
 
 export interface DetectOptions {
@@ -43,6 +44,7 @@ export function analyze(records: Iterable<TxRecord>, opts: Partial<DetectOptions
   const events: ValueEvent[] = [];
   const deshieldTxs = new Set<string>();
   const deshieldedTo = new Map<string, ValueEvent>();
+  const crossings: ValueEvent[] = [];
 
   for (const r of records) {
     outputs.add(r);
@@ -68,6 +70,7 @@ export function analyze(records: Iterable<TxRecord>, opts: Partial<DetectOptions
               'Anyone can follow the coins out of the shielded pool and back in, so both ends are linked.',
             anonymitySet: 1,
             amount: e.amount,
+            h: r.h,
           });
         } else {
           const reused = e.addrs.map((a) => deshieldedTo.get(a)).find((x) => x && x.txid !== r.txid);
@@ -82,22 +85,12 @@ export function analyze(records: Iterable<TxRecord>, opts: Partial<DetectOptions
                 'Reusing a transparent address ties both shielded activities to one owner.',
               anonymitySet: 1,
               amount: e.amount,
+              h: r.h,
             });
           }
         }
       }
-      if (e.dir === 'in' && e.from !== 'transparent') {
-        findings.push({
-          kind: 'pool-crossing',
-          severity: 'medium',
-          txids: [e.txid],
-          title: `Exact amount revealed moving ${e.from} → ${e.to}: ${fmtZec(e.amount)}`,
-          detail:
-            'Moving value between shielded pools passes through a public turnstile: the exact amount ' +
-            'is visible. A matching amount appearing later can be linked to this move.',
-          amount: e.amount,
-        });
-      }
+      if (e.dir === 'in' && e.from !== 'transparent') crossings.push(e);
     }
 
     const fee = paidFee(r, outputs);
@@ -110,8 +103,32 @@ export function analyze(records: Iterable<TxRecord>, opts: Partial<DetectOptions
         detail:
           'Most wallets pay exactly the ZIP-317 fee. A distinctive fee narrows down which wallet ' +
           'software made this transaction and can connect it to others with the same quirk.',
+        h: r.h,
       });
     }
+  }
+
+  // Turnstile amounts: a migration hides only among other migrations of the same amount.
+  const sameAmount = new Map<number, number[]>();
+  for (const c of crossings) sameAmount.set(c.amount, [...(sameAmount.get(c.amount) ?? []), c.h]);
+  for (const c of crossings) {
+    const n = sameAmount.get(c.amount)!.filter((h) => Math.abs(h - c.h) <= o.windowBlocks).length;
+    const standard = isDenomination(c.amount);
+    findings.push({
+      kind: 'pool-crossing',
+      severity: n === 1 ? 'medium' : n <= 10 ? 'low' : 'info',
+      txids: [c.txid],
+      title: `Exact amount revealed moving ${c.from} → ${c.to}: ${fmtZec(c.amount)}`,
+      detail:
+        'Moving value between shielded pools passes through a public turnstile, so the exact amount is visible. ' +
+        (n === 1
+          ? 'No other move of this amount happened nearby: it acts as a fingerprint that later amounts can be matched against.'
+          : `${n} moves of this amount happened within the window, so it blends in` +
+            (standard ? ' (it is a standard ZIP-318 denomination).' : '.')),
+      anonymitySet: n,
+      amount: c.amount,
+      h: c.h,
+    });
   }
 
   // Amount correlation: for each withdrawal, which earlier deposits could it be?
@@ -153,6 +170,7 @@ export function analyze(records: Iterable<TxRecord>, opts: Partial<DetectOptions
         `${Math.round(100 / n)}% confidence without breaking any cryptography.`,
       anonymitySet: n,
       amount: out.amount,
+      h: out.h,
     });
   }
 

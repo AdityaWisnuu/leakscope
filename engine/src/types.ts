@@ -54,6 +54,8 @@ export interface Finding {
   /** How many indistinguishable alternatives an observer has (1 = fully linked). */
   anonymitySet?: number;
   amount?: number;
+  /** Height of the latest transaction involved: when the leak became observable. */
+  h?: number;
 }
 
 export type FindingKind =
