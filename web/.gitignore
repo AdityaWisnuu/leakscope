@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+# The repo-wide `data/` rule would hide the sample data; keep it, but not the large per-tx shards.
+!/public/data/
+/public/data/findings/
+/test-results/
