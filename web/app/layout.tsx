@@ -1,0 +1,45 @@
+import type { Metadata, Viewport } from 'next';
+import { IBM_Plex_Mono, IBM_Plex_Sans, Instrument_Serif } from 'next/font/google';
+import { SiteHeader } from '@/components/SiteHeader';
+import { SmoothScroll } from '@/components/SmoothScroll';
+import { getSummary } from '@/lib/data.server';
+import { num } from '@/lib/format';
+import './globals.css';
+
+const serif = Instrument_Serif({ subsets: ['latin'], weight: '400', style: ['normal', 'italic'], variable: '--font-serif' });
+const sans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-sans' });
+const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-mono' });
+
+export const metadata: Metadata = {
+  title: { default: 'Leakscope — what the Zcash chain still gives away', template: '%s · Leakscope' },
+  description:
+    'Shielded Zcash hides sender, receiver and amount, but the edges of the pools are public. Leakscope shows what an observer can link, checks a transaction, and plans leak-free migrations to Ironwood.',
+  referrer: 'no-referrer',
+};
+
+export const viewport: Viewport = { themeColor: '#0b0d0c', colorScheme: 'dark' };
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const s = getSummary();
+  return (
+    <html lang="en" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
+      <body>
+        <a className="skip" href="#main">Skip to content</a>
+        <SmoothScroll />
+        <SiteHeader range={`${num(s.range.from)}–${num(s.range.to)}`} />
+        <main id="main">{children}</main>
+        <footer className="site-footer">
+          <div className="wrap footer-grid">
+            <p className="mono small">
+              LEAKSCOPE · ZECATHON 2026 · Zcash mainnet blocks {num(s.range.from)}–{num(s.range.to)}
+            </p>
+            <p className="small dim">
+              Static site. No analytics, no cookies, no server: every check runs in your browser against files served
+              with this page.
+            </p>
+          </div>
+        </footer>
+      </body>
+    </html>
+  );
+}
