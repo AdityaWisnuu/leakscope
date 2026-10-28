@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { SplitHeadline } from '@/components/Motion';
 import { ScanClient } from './ScanClient';
 
-export const metadata: Metadata = { title: 'Scan your wallet' };
+export const metadata: Metadata = { title: 'Scan your wallet', description: 'Scan your own Zcash wallet locally with a viewing key (testnet demo included) and see which of your transactions leak at pool boundaries. Keys never leave the browser.', openGraph: { title: 'Scan your wallet · Leakscope', description: 'Scan your own Zcash wallet locally with a viewing key (testnet demo included) and see which of your transactions leak at pool boundaries. Keys never leave the browser.', images: ['/og.png'] } };
 
 export default function ScanPage() {
   return (

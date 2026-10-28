@@ -17,3 +17,4 @@ export const fileSize = (name: string) => {
     return 0;
   }
 };
+export const getBoundaryAddresses = () => read<string[]>('boundary-addresses.json');

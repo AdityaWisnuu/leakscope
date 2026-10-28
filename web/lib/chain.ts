@@ -1,29 +1,44 @@
 // In-browser pre-flight: rebuilds the engine's ChainContext from the static event index.
 import { ChainContext, preflight, type Plan, type PreflightResult, type ValueEvent } from './engine';
-import { DATA } from './constants';
 import { POOLS, type EventIndex } from './types';
+import { AddrSet } from './addrSet';
+import { unpackPreflight } from './preflightPack';
 
 export interface LocalChain {
   ctx: ChainContext;
   tip: number;
   events: number;
-  /** Transparent addresses ever seen at a pool boundary (direction not recorded). */
-  boundaryAddresses: Set<string>;
+  /** Transparent addresses seen at a pool boundary (direction not recorded). Empty until loadBoundaryAddresses(). */
+  boundaryAddresses: { has(addr: string): boolean };
 }
 
 let pending: Promise<LocalChain> | null = null;
 
-/** Loads the public boundary history once. Nothing about the user's plan is sent anywhere. */
+/**
+ * Loads the public boundary history once (/preflight.bin: the 30-day window pre-flight
+ * judges against, a few hundred KB). Nothing about the user's plan is sent anywhere.
+ */
 export function loadLocalChain(): Promise<LocalChain> {
   pending ??= (async () => {
-    const [ix, addrs] = await Promise.all([
-      fetch(`${DATA}/event-index.json`).then((r) => r.json() as Promise<EventIndex>),
-      fetch(`${DATA}/boundary-addresses.json`).then((r) => r.json() as Promise<string[]>),
-    ]);
-    return { ...fromIndex(ix), boundaryAddresses: new Set(addrs) };
+    const r = await fetch('/preflight.bin');
+    if (!r.ok) throw new Error(`preflight.bin ${r.status}`);
+    return { ...fromIndex(unpackPreflight(await r.arrayBuffer())), boundaryAddresses: new Set<string>() };
   })();
   pending.catch(() => (pending = null));
   return pending;
+}
+
+let addrPending: Promise<AddrSet> | null = null;
+
+/**
+ * The boundary-address set (/addr.bin, hashed, ~700 KB), fetched only once someone actually
+ * enters an address. The whole set is downloaded, never a per-address query, so the typed
+ * address stays in the browser.
+ */
+export function loadBoundaryAddresses(): Promise<AddrSet> {
+  addrPending ??= fetch('/addr.bin').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`addr.bin ${r.status}`)))).then((b) => new AddrSet(b));
+  addrPending.catch(() => (addrPending = null));
+  return addrPending;
 }
 
 /**

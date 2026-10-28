@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { REPO_URL } from '@/lib/constants';
 
 const NAV = [
   { href: '/', label: 'Observatory', n: '01' },
@@ -40,6 +41,11 @@ export function SiteHeader({ range }: { range: string }) {
         <p className="readout mono" aria-label={`Indexed mainnet blocks ${range}`}>
           <span className="dot" aria-hidden /> MAINNET <span className="dim">{range}</span>
         </p>
+        {REPO_URL && (
+          <a className="repo-link mono" href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            GitHub ↗
+          </a>
+        )}
       </div>
     </header>
   );

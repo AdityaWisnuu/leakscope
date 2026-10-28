@@ -265,6 +265,24 @@ p {
   box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
+.repo-link {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+  border: 1px solid var(--line-2);
+  padding: 5px 9px;
+}
+.repo-link:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+@media (max-width: 720px) {
+  .repo-link {
+    display: none;
+  }
+}
 .site-footer {
   border-top: 1px solid var(--line);
   margin-top: 120px;
@@ -275,6 +293,19 @@ p {
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
+}
+.footer-links {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.footer-links a {
+  color: var(--ink-2);
+  padding: 6px 0;
+}
+.footer-links a:hover {
+  color: var(--ink);
 }
 .footer-grid p {
   margin: 0;
@@ -973,6 +1004,28 @@ textarea:focus-visible {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.chart-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  max-width: 78ch;
+}
+/* The SVG scales with its box: keep its labels legible (~10px on screen) when the box is narrow. */
+.chart-grid .panel-body {
+  container-type: inline-size;
+}
+@container (max-width: 560px) {
+  .chart text {
+    font-size: 14px;
+  }
+}
+@container (max-width: 420px) {
+  .chart text {
+    font-size: 19px;
+  }
+  .chart text.x-odd {
+    display: none;
+  }
+}
 .chart-readout {
   min-height: 2.6em;
   font-size: 13px;
@@ -1146,6 +1199,11 @@ textarea:focus-visible {
 .timeline {
   position: relative;
   padding: 8px 0 0;
+  min-width: 0;
+  max-width: 100%;
+}
+.stack > * {
+  min-width: 0;
 }
 .timeline svg {
   width: 100%;

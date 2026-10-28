@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import { SplitHeadline } from '@/components/Motion';
 import { BLOCK_SECONDS } from '@/lib/constants';
-import { fileSize, getDays, getSummary } from '@/lib/data.server';
+import { getDays, getEventIndex, getSummary } from '@/lib/data.server';
+import { packPreflight } from '@/lib/preflightPack';
 import { PlanClient } from './PlanClient';
 
-export const metadata: Metadata = { title: 'Pre-flight' };
+export const metadata: Metadata = { title: 'Pre-flight', description: 'Before you shield, deshield or migrate Orchard to Ironwood: how many recent transactions your amount hides among, and a ZIP-318 split that leaks less. Runs in your browser.', openGraph: { title: 'Pre-flight · Leakscope', description: 'Before you shield, deshield or migrate Orchard to Ironwood: how many recent transactions your amount hides among, and a ZIP-318 split that leaks less. Runs in your browser.', images: ['/og.png'] } };
 
 export default function PlanPage() {
   const s = getSummary();
@@ -24,7 +25,7 @@ export default function PlanPage() {
           plans the <strong>ZIP 318</strong> alternative: standard denominations, broadcast at random intervals.
         </p>
       </header>
-      <PlanClient tip={s.range.to} tipTime={tipTime} eventCount={s.boundaryEvents} indexKB={Math.round(fileSize('event-index.json') / 1024)} />
+      <PlanClient tip={s.range.to} tipTime={tipTime} indexKB={Math.round(packPreflight(getEventIndex()).length / 1024)} />
     </div>
   );
 }

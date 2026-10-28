@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PrivacyNote, Sev } from '@/components/Bits';
 import { BLOCK_SECONDS } from '@/lib/constants';
-import { crowd, loadLocalChain, runPreflight, type LocalChain } from '@/lib/chain';
+import { crowd, loadBoundaryAddresses, loadLocalChain, runPreflight, type LocalChain } from '@/lib/chain';
+import type { AddrSet } from '@/lib/addrSet';
 import { decompose, decomposeRandomized, isDenomination, schedule, type PreflightResult, type ScheduledPart } from '@/lib/engine';
 import { num, zec } from '@/lib/format';
 import type { Pool } from '@/lib/types';
@@ -23,7 +24,7 @@ function parseZec(s: string): number | null {
 
 const fmtClock = (d: Date) => d.toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' });
 
-export function PlanClient({ tip, tipTime, eventCount, indexKB }: { tip: number; tipTime: number; eventCount: number; indexKB: number }) {
+export function PlanClient({ tip, tipTime, indexKB }: { tip: number; tipTime: number; indexKB: number }) {
   const [chain, setChain] = useState<LocalChain | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [from, setFrom] = useState<Pool>('orchard');
@@ -35,6 +36,8 @@ export function PlanClient({ tip, tipTime, eventCount, indexKB }: { tip: number;
   const [seed, setSeed] = useState(0);
   const [submitted, setSubmitted] = useState<{ from: Pool; to: Pool; amount: number; toAddr?: string; fromAddrs: string[] } | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [addrSet, setAddrSet] = useState<AddrSet | null>(null);
+  const [addrBusy, setAddrBusy] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -44,11 +47,20 @@ export function PlanClient({ tip, tipTime, eventCount, indexKB }: { tip: number;
 
   const result: PreflightResult | null = useMemo(() => {
     if (!chain || !submitted) return null;
+    const needsAddrs = !!submitted.toAddr || submitted.fromAddrs.length > 0;
+    if (needsAddrs && !addrSet) return null;
     return runPreflight(
       { from: submitted.from, to: submitted.to, amount: submitted.amount, toAddress: submitted.toAddr, fromAddresses: submitted.fromAddrs },
-      chain,
+      addrSet ? { ...chain, boundaryAddresses: addrSet } : chain,
     );
-  }, [chain, submitted]);
+  }, [chain, submitted, addrSet]);
+
+  // The address set is only needed once an address is typed: fetch all of it then, never per address.
+  const wantAddrs = () => {
+    if (addrSet || addrBusy) return;
+    setAddrBusy(true);
+    loadBoundaryAddresses().then(setAddrSet, (e) => setLoadErr(`Could not load the address set: ${String(e?.message ?? e)}`)).finally(() => setAddrBusy(false));
+  };
 
   // The schedule, re-anchored to today's estimated chain height rather than the index tip.
   const plan = useMemo(() => {
@@ -75,13 +87,15 @@ export function PlanClient({ tip, tipTime, eventCount, indexKB }: { tip: number;
       return;
     }
     setErr(null);
-    setSubmitted({
+    const next = {
       from,
       to,
       amount: z,
       toAddr: to === 'transparent' ? toAddr.trim() || undefined : undefined,
       fromAddrs: from === 'transparent' ? fromAddrs.split(/[\s,]+/).filter(Boolean) : [],
-    });
+    };
+    if (next.toAddr || next.fromAddrs.length) wantAddrs();
+    setSubmitted(next);
     requestAnimationFrame(() => resultRef.current?.focus({ preventScroll: true }));
   };
 
@@ -130,14 +144,14 @@ export function PlanClient({ tip, tipTime, eventCount, indexKB }: { tip: number;
           {to === 'transparent' && (
             <label className="field">
               <span>Destination t-address (optional)</span>
-              <input type="text" value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder="t1…" spellCheck={false} autoComplete="off" />
+              <input type="text" value={toAddr} onChange={(e) => setToAddr(e.target.value)} onFocus={wantAddrs} placeholder="t1…" spellCheck={false} autoComplete="off" />
               <span className="hint">Checked against every address seen at a pool boundary.</span>
             </label>
           )}
           {from === 'transparent' && (
             <label className="field">
               <span>Source t-addresses (optional)</span>
-              <textarea value={fromAddrs} onChange={(e) => setFromAddrs(e.target.value)} placeholder="t1… t1…" spellCheck={false} autoComplete="off" rows={2} />
+              <textarea value={fromAddrs} onChange={(e) => setFromAddrs(e.target.value)} onFocus={wantAddrs} placeholder="t1… t1…" spellCheck={false} autoComplete="off" rows={2} />
             </label>
           )}
           <label className="check">
@@ -154,10 +168,11 @@ export function PlanClient({ tip, tipTime, eventCount, indexKB }: { tip: number;
           </button>
           <p className="status" style={{ margin: 0 }} aria-live="polite">
             {loadErr
-              ? `Could not load the event index: ${loadErr}`
+              ? loadErr.startsWith('Could not') ? loadErr : `Could not load the event index: ${loadErr}`
               : chain
-                ? `${num(chain.events)} public boundary events and ${num(chain.boundaryAddresses.size)} addresses loaded · tip ${num(chain.tip)}`
-                : `Loading ${num(eventCount)} public boundary events (${indexKB} KB)…`}
+                ? `${num(chain.events)} boundary events from the last 30 days loaded · tip ${num(chain.tip)}` +
+                  (addrSet ? ` · ${num(addrSet.size)} boundary addresses` : addrBusy ? ' · loading address set…' : '')
+                : `Loading recent public boundary events (${indexKB} KB)…`}
           </p>
         </div>
       </form>
@@ -168,7 +183,11 @@ export function PlanClient({ tip, tipTime, eventCount, indexKB }: { tip: number;
           then judges your plan locally. Amounts and addresses you type are never sent anywhere.
         </PrivacyNote>
         <div ref={resultRef} tabIndex={-1} aria-live="polite" className="stack" style={{ outline: 'none' }}>
-          {result && submitted ? (
+          {submitted && !result && chain && addrBusy ? (
+            <div className="empty">
+              <p style={{ margin: 0 }}>Checking addresses against the boundary set…</p>
+            </div>
+          ) : result && submitted ? (
             <Result r={result} amount={submitted.amount} plan={plan} onReshuffle={() => setSeed((s) => s + 1)} />
           ) : (
             <div className="empty">
@@ -340,7 +359,7 @@ function Timeline({
           Draw a new schedule
         </button>
       </div>
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ minWidth: 560 }} role="img" aria-label={`${sched.length} transfers spread over about ${Math.round(hours)} hours`}>
         <line x1={PADX} x2={W - PADX} y1={24} y2={24} stroke="var(--line-2)" />
         {ticks.map((t) => {
@@ -360,8 +379,8 @@ function Timeline({
             <g key={i}>
               <line x1={p.px} x2={p.px} y1={24} y2={y - 8} stroke="var(--accent)" strokeOpacity="0.5" />
               <circle cx={p.px} cy={24} r={3} fill="var(--accent)" />
-              <rect x={p.px - 2} y={y - 8} width={66} height={16} fill="var(--bg)" stroke="var(--line-2)" />
-              <text x={p.px + 4} y={y + 3} style={{ fill: 'var(--ink)', fontSize: 10 }}>
+              <rect x={Math.min(p.px - 2, W - 67)} y={y - 8} width={66} height={16} fill="var(--bg)" stroke="var(--line-2)" />
+              <text x={Math.min(p.px - 2, W - 67) + 6} y={y + 3} style={{ fill: 'var(--ink)', fontSize: 10 }}>
                 {zec(p.amount)}
               </text>
             </g>

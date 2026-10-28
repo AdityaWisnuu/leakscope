@@ -5,7 +5,7 @@ import { getExamples, getSummary } from '@/lib/data.server';
 import { num } from '@/lib/format';
 import { CheckClient } from './CheckClient';
 
-export const metadata: Metadata = { title: 'Check a transaction' };
+export const metadata: Metadata = { title: 'Check a transaction', description: 'Paste a Zcash transaction id and see what a public-chain observer can link it to: round trips, amount matches, address reuse, fee fingerprints.', openGraph: { title: 'Check a transaction · Leakscope', description: 'Paste a Zcash transaction id and see what a public-chain observer can link it to: round trips, amount matches, address reuse, fee fingerprints.', images: ['/og.png'] } };
 
 export default function CheckPage() {
   const s = getSummary();

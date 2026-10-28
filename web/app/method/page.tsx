@@ -3,11 +3,13 @@ import Link from 'next/link';
 import { TxRef } from '@/components/Bits';
 import { SplitHeadline } from '@/components/Motion';
 import { REPO_URL } from '@/lib/constants';
-import { fileSize, getSummary } from '@/lib/data.server';
+import { fileSize, getBoundaryAddresses, getEventIndex, getSummary } from '@/lib/data.server';
+import { packPreflight } from '@/lib/preflightPack';
+import { ADDR_KEY_BYTES } from '@/lib/addrSet';
 import { fmtDate, num } from '@/lib/format';
 import { DEFAULTS } from '@/lib/engine';
 
-export const metadata: Metadata = { title: 'Method & ground truth' };
+export const metadata: Metadata = { title: 'Method & ground truth', description: 'How Leakscope detects linkable Zcash transactions, and how often each link class is wrong, measured against a reverse-time null model.', openGraph: { title: 'Method & ground truth · Leakscope', description: 'How Leakscope detects linkable Zcash transactions, and how often each link class is wrong, measured against a reverse-time null model.', images: ['/og.png'] } };
 
 const TOC = [
   ['observer', 'The observer'],
@@ -24,6 +26,10 @@ const TOC = [
 export default function MethodPage() {
   const s = getSummary();
   const kb = (n: string) => `${num(Math.round(fileSize(n) / 1024))} KB`;
+  const binKb = (n: string) => {
+    const bytes = n === '/preflight.bin' ? packPreflight(getEventIndex()).length : getBoundaryAddresses().length * ADDR_KEY_BYTES;
+    return `${num(Math.round(bytes / 1024))} KB`;
+  };
   const windowDays = Math.round(DEFAULTS.windowBlocks / 1152);
   return (
     <div className="wrap">
@@ -297,14 +303,16 @@ export default function MethodPage() {
                   ['days.json', 'per-day series'],
                   ['links.json', 'linked pairs drawn on the Observatory'],
                   ['examples.json', 'the most telling finding of each kind'],
-                  ['event-index.json', 'every boundary event (amount, height, direction, pools), for pre-flight'],
+                  ['event-index.json', 'every boundary event (amount, height, direction, pools); the SDK reads it'],
                   ['boundary-addresses.json', 'every transparent address seen at a boundary'],
+                  ['/preflight.bin', 'what pre-flight loads: the last 30 days of event-index.json, varint-packed'],
+                  ['/addr.bin', 'boundary addresses as sorted 64-bit sha256 prefixes, loaded only when you type an address'],
                   ['findings/xx.json', 'all findings, sharded by the first byte of each txid'],
                 ].map(([f, d]) => (
                   <tr key={f}>
                     <td className="mono">{f}</td>
                     <td>{d}</td>
-                    <td className="n">{f.includes('xx') ? '256 files' : kb(f)}</td>
+                    <td className="n">{f.includes('xx') ? '256 files' : f.startsWith('/') ? binKb(f) : kb(f)}</td>
                   </tr>
                 ))}
               </tbody>
