@@ -21,8 +21,8 @@
   },
   "stat-0": {
     "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/stat-0.wav",
-    "dur": 9.327979,
-    "text": "Leakscope models an observer with only the public chain. Over 75 days since the Ironwood pool launched, 24.6% of withdrawals can be traced."
+    "dur": 12.764542,
+    "text": "Leakscope models an observer with only the public chain. Over 75 days since the Ironwood pool launched, 24.6% of withdrawals can be linked: 6.2% by exact amount, the rest by round trips."
   },
   "acc-0": {
     "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/acc-0.wav",
@@ -36,13 +36,13 @@
   },
   "check-0": {
     "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/check-0.wav",
-    "dur": 3.666979,
-    "text": "Check takes any mainnet transaction and shows what anyone can see about it."
+    "dur": 3.875979,
+    "text": "Check takes a transaction in the indexed range and shows what anyone can see."
   },
   "check-1": {
     "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/check-1.wav",
-    "dur": 8.056375,
-    "text": "This withdrawal matches exactly one earlier deposit, 7 blocks before. Anonymity set: one. The lookup never leaves your tab."
+    "dur": 6.152333,
+    "text": "This withdrawal matches exactly one earlier deposit, 7 blocks before. Anonymity set: one."
   },
   "plan-0": {
     "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/plan-0.wav",

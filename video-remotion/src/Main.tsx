@@ -299,12 +299,15 @@ const Stat: React.FC<{ s: any }> = ({ s }) => {
         </div>
       </div>
       <div style={{ position: 'absolute', left: 116, top: 650, opacity: sub, transform: `translateY(${(1 - sub) * 20}px)`, fontFamily: sans, fontSize: 50, color: C.ink, fontWeight: 500 }}>
-        of withdrawals since Ironwood can be traced
+        of withdrawals since Ironwood can be linked
       </div>
       <div style={{ position: 'absolute', left: 116, top: 740, display: 'grid', gridTemplateColumns: 'repeat(50, 22px)', gap: 6, opacity: big }}>
         {Array.from({ length: cells }).map((_, i) => (
           <div key={i} style={{ width: 22, height: 22, background: i < lit ? C.accent : 'rgba(255,255,255,.08)', boxShadow: i < lit ? '0 0 8px rgba(255,90,44,.5)' : 'none' }} />
         ))}
+      </div>
+      <div style={{ position: 'absolute', left: 116, top: 812, opacity: ramp(frame, l.rel + 8.6, l.rel + 9.3), fontFamily: mono, fontSize: 26, color: C.ink2 }}>
+        <span style={{ color: C.ink }}>6.2%</span> by exact amount (~99% precise) · the rest by round trips
       </div>
       <Captions lines={s.lines} />
     </AbsoluteFill>
@@ -458,7 +461,7 @@ const Sdk: React.FC<{ s: any }> = ({ s }) => {
       <div style={{ position: 'absolute', left: 110, top: 190, width: 560 }}>
         <Words text="One call," at={0.2} style={{ fontFamily: serif, fontSize: 110, color: C.ink, lineHeight: 1 }} />
         <Words text="before Send." at={0.6} style={{ fontFamily: serif, fontStyle: 'italic', fontSize: 110, color: C.accent, lineHeight: 1.05 }} />
-        <div style={{ fontFamily: mono, fontSize: 26, color: C.ink2, marginTop: 34, opacity: ramp(frame, 1.0, 1.6) }}>@leakscope/engine</div>
+        <div style={{ fontFamily: mono, fontSize: 26, color: C.ink2, marginTop: 34, opacity: ramp(frame, 1.0, 1.6) }}>@leakscope/engine <span style={{ color: C.ink3, fontSize: 20 }}>(GitHub release)</span></div>
         <div style={{ fontFamily: sans, fontSize: 24, color: C.ink3, marginTop: 12, lineHeight: 1.5, opacity: ramp(frame, 1.2, 1.8) }}>
           Zero runtime dependencies. Runs in the wallet, on public data.
         </div>

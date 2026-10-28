@@ -54,7 +54,7 @@ The evidence behind the warnings: we indexed mainnet from Ironwood activation (b
 - Repository: https://github.com/AdityaWisnuu/leakscope
 - Live site: https://leakscope-cyan.vercel.app
 - Findings write-up: https://github.com/AdityaWisnuu/leakscope/blob/main/docs/FINDINGS.md
-- Demo video (1:57): https://leakscope-cyan.vercel.app/demo.mp4
+- Demo video (1:58): https://leakscope-cyan.vercel.app/demo.mp4
 - Pitch deck: https://leakscope-cyan.vercel.app/deck.pdf
 - SDK release: https://github.com/AdityaWisnuu/leakscope/releases/tag/engine-v0.1.0
 

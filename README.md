@@ -4,7 +4,7 @@
 
 **Pre-flight privacy tooling for Zcash wallets: a wallet SDK and a pre-flight API that warn before a send leaks, a WASM viewing-key scanner, and the indexer and Rust parser behind them.**
 
-Live: **https://leakscope-cyan.vercel.app** · Demo video (1:57): [demo.mp4](https://leakscope-cyan.vercel.app/demo.mp4) · Pitch deck: [deck.pdf](https://leakscope-cyan.vercel.app/deck.pdf) · SDK: [`@leakscope/engine` 0.1.0](https://github.com/AdityaWisnuu/leakscope/releases/tag/engine-v0.1.0) · Findings: [docs/FINDINGS.md](docs/FINDINGS.md) · Validation: [validation/](validation/) · License: MIT OR Apache-2.0
+Live: **https://leakscope-cyan.vercel.app** · Demo video (1:58): [demo.mp4](https://leakscope-cyan.vercel.app/demo.mp4) · Pitch deck: [deck.pdf](https://leakscope-cyan.vercel.app/deck.pdf) · SDK: [`@leakscope/engine` 0.1.0](https://github.com/AdityaWisnuu/leakscope/releases/tag/engine-v0.1.0) · Findings: [docs/FINDINGS.md](docs/FINDINGS.md) · Validation: [validation/](validation/) · License: MIT OR Apache-2.0
 
 ## The problem
 
