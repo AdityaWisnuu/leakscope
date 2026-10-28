@@ -2,6 +2,24 @@
 
 Both use the built package in `engine/dist` (run `cd engine && bun install && bun run build` first if it is missing).
 
+In your own project, install the released 0.1.0 tarball (npm registry publish is pending):
+
+```sh
+npm install https://github.com/AdityaWisnuu/leakscope/releases/download/engine-v0.1.0/leakscope-engine-0.1.0.tgz
+```
+
+```js
+import { checkSend, loadPublishedContext } from '@leakscope/engine';
+const ctx = await loadPublishedContext();   // or { baseUrl: 'https://your-cdn/leakscope' }
+console.log(checkSend({ from: 'orchard', to: 'transparent', amountZat: 1_234_560_000 }, ctx).headline);
+```
+
+`loadPublishedContext()` downloads two static, same-for-everyone files (`event-index.json`,
+`boundary-addresses.json`) from `https://leakscope-cyan.vercel.app/data` by default. Nothing about the planned
+send is ever requested. To avoid contacting that host at all, copy `web/public/data/` to your own server and
+pass `baseUrl`, or load the files yourself with `contextFromIndex()`
+(see [`engine/README.md`](../engine/README.md#loadpublishedcontextopts--promisewalletcontext)).
+
 ## node-preflight
 
 A wallet asks Leakscope before it sends, in plain Node (18+).

@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engine:
+    name: engine (bun test, build, pack)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - run: bun test
+      - name: Testnet ground truth (validation/testnet)
+        run: bun ../validation/testnet/check.ts
+      - run: bun run build
+      - name: Pack and import the tarball in plain Node
+        run: |
+          npm pack
+          mkdir -p "$RUNNER_TEMP/consumer" && cd "$RUNNER_TEMP/consumer"
+          npm init -y >/dev/null
+          npm install "$GITHUB_WORKSPACE/engine/leakscope-engine-0.1.0.tgz"
+          node --input-type=module -e "import { checkSend, decompose } from '@leakscope/engine'; if (typeof checkSend !== 'function') process.exit(1); console.log('ESM ok', JSON.stringify(decompose(1_234_560_000)))"
+          node -e "const e = require('@leakscope/engine'); if (typeof e.checkSend !== 'function') process.exit(1); console.log('CJS ok')"
+
+  web:
+    name: web (tests, static build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      # web/lib/engine is a symlink to engine/src, whose imports resolve from engine/node_modules.
+      - run: bun install --frozen-lockfile
+        working-directory: engine
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  core:
+    name: core (cargo test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+      - run: cargo test --locked

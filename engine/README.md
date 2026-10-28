@@ -13,10 +13,15 @@ Pre-flight privacy checks for Zcash wallets. Before the user presses **Send**, a
 ## Install
 
 ```sh
-npm install @leakscope/engine
+npm install https://github.com/AdityaWisnuu/leakscope/releases/download/engine-v0.1.0/leakscope-engine-0.1.0.tgz
 ```
 
-Until it is published to npm, install from the repository:
+This is the packed 0.1.0 tarball attached to the
+[engine-v0.1.0 GitHub release](https://github.com/AdityaWisnuu/leakscope/releases/tag/engine-v0.1.0). It
+installs as `@leakscope/engine`, so imports are the same as they will be from the registry. Publishing to the
+npm registry (`npm install @leakscope/engine`) is pending.
+
+To build the tarball yourself:
 
 ```sh
 git clone https://github.com/AdityaWisnuu/leakscope && cd leakscope/engine
@@ -29,7 +34,7 @@ npm install /path/to/leakscope-engine-0.1.0.tgz   # in your wallet project
 ```js
 import { checkSend, loadPublishedContext } from '@leakscope/engine';
 
-const ctx = await loadPublishedContext();            // public mainnet dataset, load once
+const ctx = await loadPublishedContext();            // public mainnet dataset: load once, at app start
 const v = checkSend(
   { from: 'orchard', to: 'transparent', amountZat: 1_234_560_000, toAddress: 't1...' },
   ctx,
@@ -46,6 +51,27 @@ Runnable examples: [`examples/node-preflight`](../examples/node-preflight) (CLI 
 ### `loadPublishedContext(opts?) => Promise<WalletContext>`
 
 Downloads Leakscope's published dataset and indexes it in memory (about 7 MB + 3 MB of JSON; a few hundred ms to build).
+
+**Where the data comes from.** By default this fetches two static files from the public Leakscope site,
+`https://leakscope-cyan.vercel.app/data/event-index.json` and `.../boundary-addresses.json`. They are the same
+files for every caller. The engine never makes a per-address, per-amount or per-txid request: the check itself
+runs locally. The host (Vercel) still sees the caller's IP and the fact that it downloaded the dataset, so
+production wallets should self-host or bundle it:
+
+```js
+// 1. Self-host: copy web/public/data/event-index.json and boundary-addresses.json to your own CDN.
+const ctx = await loadPublishedContext({ baseUrl: 'https://cdn.example-wallet.com/leakscope' });
+
+// 2. Bundle / read from disk: no network at all.
+import { readFile } from 'node:fs/promises';
+const ctx2 = contextFromIndex(
+  JSON.parse(await readFile('event-index.json', 'utf8')),
+  JSON.parse(await readFile('boundary-addresses.json', 'utf8')),
+);
+
+// 3. Route the download through your own client (Tor, cache, ...).
+const ctx3 = await loadPublishedContext({ fetch: myTorFetch });
+```
 
 | option | default | |
 |---|---|---|
@@ -140,8 +166,10 @@ observer has to choose between.
 
 Everything runs on the user's device. The only network traffic is `loadPublishedContext` downloading the
 public dataset, which is the same file for every user and carries nothing about the planned send: no amount,
-no address, no txid. To avoid even revealing that a user runs Leakscope, bundle the dataset, self-host it, or
-pass a `fetch` that goes through Tor.
+no address, no txid. Call it **once at app start** (or on a schedule), not right before a send, so the timing of
+the download does not hint that a boundary transaction is coming. By default the files come from
+`leakscope-cyan.vercel.app`, whose host sees the caller's IP. To avoid even revealing that a user runs
+Leakscope, bundle the dataset, self-host it (`baseUrl`), or pass a `fetch` that goes through Tor.
 
 The bundled dataset is a snapshot (its `tip` height). Crowds for very recent activity are not included until the
 dataset is refreshed.

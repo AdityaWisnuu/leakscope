@@ -1,0 +1,6 @@
+.data/
+.tools/
+.tools7/
+target/
+target-*/
+src/

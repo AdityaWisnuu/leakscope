@@ -1,0 +1,14 @@
+# "nu7" profile (needs zebrad >= 7.0.0-rc.0: ZEBRAD=.tools7/bin/zebrad): mainnet-like until height 300, then NU7
+# (25 s target spacing, ZIP 218 per-block action limits, NSM, v4 tx invalid). zcash-devtool @5a26ee8 has NO
+# NU7 support (zcash_protocol 0.10.x), so wallets cannot transact after the NU7 height — node-only testing.
+overwinter = 1
+sapling = 1
+blossom = 1
+heartwood = 1
+canopy = 1
+nu5 = 2
+nu6 = 2
+nu6_1 = 2
+nu6_2 = 2
+nu6_3 = 2
+nu7 = 300
