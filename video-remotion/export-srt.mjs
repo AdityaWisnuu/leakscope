@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import { buildTimeline } from './src/timeline.js';
+const N = JSON.parse(fs.readFileSync('src/narration.json', 'utf8'));
+const R = JSON.parse(fs.readFileSync('src/rec-timeline.json', 'utf8'));
+const { scenes, total } = buildTimeline(N, R);
+const ts = (s) => { const ms = Math.round(s * 1000); const h = Math.floor(ms / 3600000), m = Math.floor(ms / 60000) % 60, sec = Math.floor(ms / 1000) % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')},${String(ms % 1000).padStart(3, '0')}`; };
+let i = 0, out = '';
+for (const sc of scenes) for (const l of sc.lines) out += `${++i}\n${ts(l.start)} --> ${ts(l.start + l.dur + 0.2)}\n${l.text}\n\n`;
+fs.writeFileSync('out/leakscope-remotion.srt', out);
+console.log('total', total.toFixed(2), scenes.map((s) => `${s.id}:${s.dur.toFixed(1)}`).join(' '));

@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Leakscope · ZECATHON 2026</title>
+<style>
+@font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;src:url(assets/fonts/InstrumentSerif-Regular.woff2) format('woff2');}
+@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;src:url(assets/fonts/InstrumentSerif-Italic.woff2) format('woff2');}
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:100 700;src:url(assets/fonts/IBMPlexSans-Var.woff2) format('woff2');}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;src:url(assets/fonts/IBMPlexMono-Regular.woff2) format('woff2');}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;src:url(assets/fonts/IBMPlexMono-Medium.woff2) format('woff2');}
+
+:root{
+  --bg:#0b0d0c;--bg-1:#101312;--bg-2:#151918;--line:#232927;--line-2:#323a37;
+  --ink:#ebe8e1;--ink-2:#b0b4ae;--ink-3:#868c86;
+  --accent:#ff5a2c;--accent-ink:#ff7a55;--accent-dim:rgba(255,90,44,.14);
+  --sapling:#86a596;--orchard:#b3a47f;--ironwood:#a9c3cc;
+  --serif:'Instrument Serif',Georgia,serif;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --pad:120px;
+}
+@page{size:1920px 1080px;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#000}
+body{color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
+.slide{
+  position:relative;width:1920px;height:1080px;overflow:hidden;
+  background-color:var(--bg);
+  background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:32px 32px;
+  padding:150px var(--pad) 120px;
+  page-break-after:always;break-after:page;
+}
+.slide:last-child{page-break-after:auto;break-after:auto}
+
+/* chrome */
+.top{position:absolute;left:var(--pad);right:var(--pad);top:52px;display:flex;align-items:center;justify-content:space-between;
+  font-family:var(--mono);font-size:18px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.brand{display:flex;align-items:center;gap:14px;color:var(--ink);letter-spacing:.22em;font-size:18px}
+.brand img{width:30px;height:30px}
+.foot{position:absolute;left:var(--pad);right:var(--pad);bottom:46px;display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:16px;letter-spacing:.08em;color:var(--ink-3)}
+.foot .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:10px;vertical-align:1px}
+
+/* type */
+.eyebrow{font-family:var(--mono);font-size:20px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 28px}
+.eyebrow b{color:var(--ink);font-weight:500}
+h1,h2{font-family:var(--serif);font-weight:400;margin:0;line-height:.98;letter-spacing:-.01em}
+h1{font-size:184px}
+h2{font-size:104px}
+em,.it{font-family:var(--serif);font-style:italic;color:var(--accent-ink)}
+h1 em,h2 em{color:var(--accent)}
+p{margin:0}
+.lede{font-size:34px;line-height:1.45;color:var(--ink-2);max-width:1100px}
+.lede strong{color:var(--ink);font-weight:500}
+.mono{font-family:var(--mono);font-feature-settings:'zero' 1,'tnum' 1}
+.dim{color:var(--ink-3)}
+.acc{color:var(--accent)}
+.label{font-family:var(--mono);font-size:18px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+
+.panel{background:var(--bg-1);border:1px solid var(--line);position:relative}
+.panel::before,.panel::after{content:"";position:absolute;width:12px;height:12px;border-color:var(--ink-3);border-style:solid}
+.panel::before{left:-1px;top:-1px;border-width:1px 0 0 1px}
+.panel::after{right:-1px;bottom:-1px;border-width:0 1px 1px 0}
+.pill{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:16px;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid var(--accent);color:var(--accent-ink);border-radius:999px;padding:4px 14px}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+
+/* ---------- 01 title ---------- */
+.s-title{display:flex;flex-direction:column;justify-content:center;padding-top:60px}
+.s-title h1{font-size:220px;line-height:.9}
+.s-title .sub{font-family:var(--serif);font-size:96px;line-height:1.02;margin-top:36px;color:var(--ink)}
+.s-title .url{margin-top:64px;font-family:var(--mono);font-size:30px;letter-spacing:.04em;color:var(--ink);line-height:1.6}
+.s-title .url span{color:var(--ink-3);display:block;font-size:24px}
+.reticle{position:absolute;right:120px;top:50%;width:520px;height:520px;transform:translateY(-50%);opacity:.95}
+
+/* ---------- 02 problem ---------- */
+.flow{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:0;margin-top:72px;align-items:stretch}
+.flow .col{padding:36px 40px;border:1px solid var(--line);background:var(--bg-1)}
+.flow .col.mid{background:var(--bg-2);border-color:var(--line-2)}
+.flow h3{font-family:var(--mono);font-weight:500;font-size:20px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 18px;color:var(--ink-3)}
+.flow .big{font-family:var(--serif);font-size:56px;line-height:1.05;margin-bottom:20px}
+.flow ul{margin:0;padding:0;list-style:none;font-size:26px;line-height:1.5;color:var(--ink-2)}
+.flow li{padding-left:28px;position:relative}
+.flow li::before{content:"";position:absolute;left:0;top:.62em;width:12px;height:2px;background:var(--ink-3)}
+.flow .leak li::before{background:var(--accent)}
+.flow .leak li b{color:var(--ink);font-weight:500}
+
+/* ---------- 03 headline ---------- */
+.s-head .hero{font-family:var(--serif);font-size:330px;line-height:.85;color:var(--accent);letter-spacing:-.02em}
+.s-head .hero small{font-size:150px}
+.s-head h2{font-size:92px;margin-top:18px}
+.stack{margin-top:72px}
+.stack .bar{display:flex;height:56px;border:1px solid var(--line-2)}
+.stack .bar div{height:100%}
+.stack .legend{display:flex;gap:56px;margin-top:22px;font-size:24px;color:var(--ink-2)}
+.stack .legend span.k{display:inline-block;width:16px;height:16px;margin-right:12px;vertical-align:-1px}
+.stack .legend b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.s-head .side{position:absolute;right:var(--pad);top:220px;width:560px;display:flex;flex-direction:column;gap:30px}
+.kv{border-top:1px solid var(--line-2);padding-top:16px}
+.kv .v{font-family:var(--mono);font-size:54px;font-weight:400;color:var(--ink);letter-spacing:-.01em}
+.kv .k{font-size:22px;color:var(--ink-3);margin-top:4px}
+
+/* ---------- 04 example ---------- */
+.txrow{display:grid;grid-template-columns:1fr 160px 1fr;align-items:center;margin-top:70px}
+.tx{padding:40px 44px}
+.tx .meta{font-family:var(--mono);font-size:19px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:22px}
+.tx .amt{font-family:var(--mono);font-size:92px;letter-spacing:-.02em;line-height:1}
+.tx .amt .u{font-size:40px;color:var(--ink-3);margin-left:14px}
+.tx .amt .d{color:var(--accent)}
+.tx .id{font-family:var(--mono);font-size:22px;color:var(--ink-2);margin-top:22px}
+.arrow{text-align:center;font-family:var(--mono);font-size:20px;color:var(--ink-3);letter-spacing:.1em}
+.arrow svg{display:block;margin:0 auto 10px}
+.math{margin-top:56px;display:flex;align-items:baseline;gap:28px;font-family:var(--mono);font-size:40px;white-space:nowrap}
+.math .eq{color:var(--ink-3)}
+.math .res{color:var(--accent)}
+.note{margin-top:40px;font-size:28px;line-height:1.45;color:var(--ink-2);max-width:1500px}
+.note b{color:var(--ink);font-weight:500}
+
+/* ---------- 05 calibration ---------- */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:44px}
+table.t{width:100%;border-collapse:collapse;font-size:26px}
+table.t th{font-family:var(--mono);font-weight:400;font-size:17px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:0 0 14px;border-bottom:1px solid var(--line-2)}
+table.t td{padding:16px 0;border-bottom:1px solid var(--line);color:var(--ink-2)}
+table.t td.n{font-family:var(--mono);color:var(--ink);text-align:right}
+table.t th.n{text-align:right}
+table.t td.p{font-family:var(--mono);color:var(--accent);text-align:right;font-size:32px}
+table.t tr.drop td{color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--accent)}
+.chart{padding:28px 36px 24px}
+.bars{display:flex;align-items:flex-end;gap:28px;height:270px;margin-top:20px;border-bottom:1px solid var(--line-2);position:relative}
+.bars .b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}
+.bars .b i{display:block;width:100%;background:#3a423f}
+.bars .b.hot i{background:var(--accent)}
+.bars .b span{font-family:var(--mono);font-size:24px;margin-bottom:10px}
+.bars .half{position:absolute;left:0;right:0;border-top:1px dashed var(--ink-3)}
+.bars .half em{position:absolute;left:0;top:-30px;font-size:22px;font-family:var(--mono);font-style:normal;color:var(--ink-3)}
+.xl{display:flex;gap:28px;margin-top:12px}
+.xl div{flex:1;text-align:center;font-family:var(--mono);font-size:18px;color:var(--ink-3)}
+
+/* ---------- 06 findings grid ---------- */
+.grid4{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:40px}
+.card{padding:30px 38px}
+.card .n{font-family:var(--serif);font-size:80px;line-height:.9;color:var(--ink)}
+.card .n em{font-size:80px}
+.card .t{font-size:27px;color:var(--ink);margin-top:12px;font-weight:500}
+.card .d{font-size:22px;line-height:1.42;color:var(--ink-2);margin-top:10px}
+.card .d b{color:var(--ink);font-weight:500}
+
+/* ---------- 07 product ---------- */
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:26px 40px;margin-top:36px}
+.shot .frame{height:268px;overflow:hidden;border:1px solid var(--line-2);background:#0b0d0c}
+.shot .frame img{width:100%;display:block}
+.shot .cap{display:flex;align-items:baseline;gap:18px;margin-top:14px;white-space:nowrap}
+.shot .cap .nm{font-family:var(--serif);font-size:40px}
+.shot .cap .ds{font-size:21px;color:var(--ink-2)}
+.shot .cap .ix{font-family:var(--mono);font-size:18px;color:var(--accent)}
+
+/* ---------- 08 wallets ---------- */
+.s-wallet .wrapw{display:grid;grid-template-columns:1fr 400px;gap:110px;margin-top:20px}
+pre.code{margin:0;padding:34px 38px;font-family:var(--mono);font-size:23px;line-height:1.6;color:var(--ink-2);white-space:pre}
+.code .k{color:#c9a8ff}.code .s{color:#a9c3cc}.code .c{color:var(--ink-3)}.code .f{color:var(--ink)}.code .o{color:var(--accent-ink)}
+.phone{width:400px;margin-top:-30px;border-radius:24px;overflow:hidden}
+.phone img{width:100%;display:block}
+.ticks{display:flex;gap:44px;margin-top:34px;font-size:24px;color:var(--ink-2)}
+.ticks b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+
+/* ---------- 09 architecture ---------- */
+.pipe{display:grid;grid-template-columns:1fr 50px 1.25fr 50px 1.1fr 50px 1.15fr;align-items:center;margin-top:64px}
+.pipe .pc{display:flex;flex-direction:column;gap:20px}
+.pipe .ar{text-align:center;font-family:var(--sans);font-size:40px;color:var(--accent)}
+.node{padding:24px 26px;background:var(--bg-1);border:1px solid var(--line-2)}
+.node .nm{font-family:var(--mono);font-size:24px;color:var(--ink);font-weight:500}
+.node .nm span{color:var(--accent)}
+.node .ds{font-size:21px;line-height:1.42;color:var(--ink-2);margin-top:8px}
+.node.src{border-style:dashed;background:transparent}
+.node.out{border-color:rgba(255,90,44,.55)}
+/* ---------- 10 impact ---------- */
+.imp{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:64px}
+.imp .card{min-height:0}
+.imp .who{font-family:var(--mono);font-size:19px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.imp .hd{font-family:var(--serif);font-size:52px;line-height:1.04;margin-bottom:20px}
+
+/* ---------- 11 roadmap ---------- */
+.road{margin-top:90px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--line-2)}
+.road .st{padding:34px 34px 0 0;position:relative}
+.road .st::before{content:"";position:absolute;top:-8px;left:0;width:14px;height:14px;border-radius:50%;background:var(--bg);border:2px solid var(--ink-3)}
+.road .st.now::before{background:var(--accent);border-color:var(--accent)}
+.road .when{font-family:var(--mono);font-size:18px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.road .st.now .when{color:var(--accent)}
+.road .hd{font-family:var(--serif);font-size:56px;line-height:1.04;margin:16px 0 18px}
+.road ul{margin:0;padding:0;list-style:none;font-size:26px;line-height:1.5;color:var(--ink-2)}
+.road li{margin-bottom:10px}
+
+/* ---------- 12 close ---------- */
+.links{margin-top:80px;display:grid;grid-template-columns:260px 1fr;row-gap:30px;font-size:36px}
+.links .k{font-family:var(--mono);font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-top:12px}
+.links .v{font-family:var(--mono);color:var(--ink)}
+.links .v.ph{color:var(--ink-3)}
+</style>
+</head>
+<body>
+
+<!-- 01 TITLE -->
+<section class="slide s-title">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>ZECATHON 2026 · Core &amp; Tooling</div></div>
+  <svg class="reticle" viewBox="0 0 560 560" fill="none">
+    <circle cx="280" cy="280" r="200" stroke="#323a37" stroke-width="2"/>
+    <circle cx="280" cy="280" r="120" stroke="#232927" stroke-width="2"/>
+    <path d="M280 20v150M280 390v150M20 280h150M390 280h150" stroke="#868c86" stroke-width="2"/>
+    <circle cx="280" cy="280" r="26" fill="#ff5a2c"/>
+    <path d="M280 280 C 360 200, 430 150, 540 110" stroke="#ff5a2c" stroke-width="2" opacity=".8"/>
+    <path d="M280 280 C 330 330, 420 420, 520 470" stroke="#ff5a2c" stroke-width="2" opacity=".5"/>
+    <path d="M280 280 C 200 360, 140 430, 60 500" stroke="#ff5a2c" stroke-width="2" opacity=".35"/>
+  </svg>
+  <p class="eyebrow">A privacy linter &amp; observatory for Zcash</p>
+  <h1>Leakscope</h1>
+  <div class="sub">The vault is safe.<br><em>The doors leak.</em></div>
+  <div class="url">leakscope-cyan.vercel.app <span>github.com/AdityaWisnuu/leakscope</span></div>
+  <div class="foot"><div><span class="dot"></span>Zcash mainnet · blocks 3,428,143–3,515,250</div><div>Built by Adit</div></div>
+</section>
+
+<!-- 02 PROBLEM -->
+<section class="slide">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>02 · The problem</div></div>
+  <p class="eyebrow">Shielded pools hide everything, except their edges</p>
+  <h2>Inside the pool you are invisible.<br><em>Crossing its edge</em> is public.</h2>
+  <div class="flow">
+    <div class="col">
+      <h3>Inside a shielded pool</h3>
+      <div class="big">Hidden</div>
+      <ul><li>Sender and receiver</li><li>Amount</li><li>Memo</li></ul>
+    </div>
+    <div class="col mid leak">
+      <h3 class="acc">At every boundary</h3>
+      <div class="big">Published, exactly</div>
+      <ul>
+        <li><b>Shield</b> t → pool: inputs, addresses, amount</li>
+        <li><b>Deshield</b> pool → t: address, amount, time</li>
+        <li><b>Pool crossing</b> (turnstile): the exact value moved</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Why now</h3>
+      <div class="big">Everyone must cross</div>
+      <ul><li>NU6.3 froze Orchard (withdraw-only) at block 3,428,143</li><li>Every Orchard holder crosses a boundary at least once</li><li>Wallets don't show users what that reveals</li></ul>
+    </div>
+  </div>
+  <div class="foot"><div><span class="dot"></span>No cryptography is broken. This is what the transaction format reveals at the edges.</div><div>02</div></div>
+</section>
+
+<!-- 03 HEADLINE -->
+<section class="slide s-head">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>03 · Headline finding</div></div>
+  <p class="eyebrow">First 75.6 days of Ironwood · public chain only</p>
+  <div class="hero">24.6<small>%</small></div>
+  <h2>of withdrawals since Ironwood<br>launched <em>can be traced.</em></h2>
+  <div class="side">
+    <div class="kv"><div class="v">20,343 <span class="dim">/ 82,581</span></div><div class="k">deshielding transactions linked to where the money came from or went next</div></div>
+    <div class="kv"><div class="v">584,497</div><div class="k">mainnet transactions indexed, blocks 3,428,143–3,515,250 (after a 30-day warm-up)</div></div>
+    <div class="kv"><div class="v">241,314</div><div class="k">boundary events analysed</div></div>
+  </div>
+  <div class="stack">
+    <div class="bar">
+      <div style="width:6.21%;background:var(--accent)"></div>
+      <div style="width:18.42%;background:var(--accent-ink);opacity:.55"></div>
+      <div style="flex:1;background:#1c211f"></div>
+    </div>
+    <div class="legend">
+      <div><span class="k" style="background:var(--accent)"></span><b>5,128</b> (6.2%) linked back to their deposit by exact amount + fee</div>
+      <div><span class="k" style="background:var(--accent-ink);opacity:.55"></span><b>15,215</b> (18.4%) more linked forward by a round trip</div>
+    </div>
+  </div>
+  <div class="foot"><div><span class="dot"></span>Source: web/public/data/summary.json · a lower bound: no network metadata, no off-chain data</div><div>03</div></div>
+</section>
+
+<!-- 04 EXAMPLE -->
+<section class="slide">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>04 · A real link</div></div>
+  <p class="eyebrow">Mainnet · verifiable on any explorer</p>
+  <h2>Same coins in and out, <em>seven blocks apart.</em></h2>
+  <div class="txrow">
+    <div class="panel tx">
+      <div class="meta">In · shielded into Sapling · block 3,428,153</div>
+      <div class="amt">2.501<span class="d">21</span>076<span class="u">ZEC</span></div>
+      <div class="id">c6b771a76de69246…845157fd</div>
+    </div>
+    <div class="arrow">
+      <svg width="120" height="24" viewBox="0 0 120 24"><path d="M2 12h110M100 2l12 10-12 10" stroke="#ff5a2c" stroke-width="2" fill="none"/></svg>
+      +7 BLOCKS
+    </div>
+    <div class="panel tx">
+      <div class="meta">Out · deshielded from Sapling · block 3,428,160</div>
+      <div class="amt">2.501<span class="d">06</span>076<span class="u">ZEC</span></div>
+      <div class="id">57d7d945f70c8885…2e34fe3d</div>
+    </div>
+  </div>
+  <div class="math"><span>2.50121076</span><span class="eq">−</span><span>2.50106076</span><span class="eq">=</span><span class="res">0.00015000 ZEC</span><span class="dim" style="font-size:24px">the withdrawal's own 15,000-zat fee</span></div>
+  <p class="note">The fee is public, so <b>deposit = withdrawal + its fee</b> pins the match to one exact value. No other deposit in the 30-day window fits: anonymity set of <b>1</b>. Leakscope's <span class="mono">/check</span> flags it as a high-severity quick round trip.</p>
+  <div class="foot"><div><span class="dot"></span>leakscope-cyan.vercel.app/check#c6b771a7…</div><div>04</div></div>
+</section>
+
+<!-- 05 CALIBRATION -->
+<section class="slide">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>05 · How we know we're right</div></div>
+  <p class="eyebrow">Precision measured, not assumed</p>
+  <h2>Run the rule <em>backwards in time.</em></h2>
+  <p class="lede" style="margin-top:28px;max-width:1560px;font-size:30px">Money can't leave before it arrives. Matching each withdrawal against deposits made <strong>after</strong> it can only find coincidences, which gives the false-link rate on the chain's real amounts.</p>
+  <div class="two">
+    <div>
+      <table class="t">
+        <tr><th>Tier we report</th><th class="n">Links</th><th class="n">Coincid.</th><th class="n">Precision</th></tr>
+        <tr><td>Non-round, ≤100 blocks</td><td class="n">2,535</td><td class="n">1</td><td class="p">≈99%</td></tr>
+        <tr><td>Non-round, ≤1 day</td><td class="n">128</td><td class="n">19</td><td class="p">≈85%</td></tr>
+        <tr><td>Round, ≤10 blocks <span class="dim" style="font-size:20px">(small sample)</span></td><td class="n">13</td><td class="n">0</td><td class="p">≈90%</td></tr>
+        <tr class="drop"><td>Non-round, &gt;1 day apart</td><td class="n">447</td><td class="n">603</td><td class="n" style="color:var(--ink-3)">dropped</td></tr>
+      </table>
+      <p style="margin-top:28px;font-size:23px;line-height:1.45;color:var(--ink-2)">More coincidences than links beyond a day, so those links are <b style="color:var(--ink);font-weight:500">not reported at all</b>. Round amounts &gt;10 blocks apart: also dropped.</p>
+    </div>
+    <div class="panel chart">
+      <div class="label">Naive rule: “only matching deposit” · est. false links by window</div>
+      <div class="bars">
+        <div class="b"><span>6.4%</span><i style="height:6.4%"></i></div>
+        <div class="b"><span>22.4%</span><i style="height:22.4%"></i></div>
+        <div class="b"><span>48.3%</span><i style="height:48.3%"></i></div>
+        <div class="b hot"><span class="acc">55.3%</span><i style="height:55.3%"></i></div>
+      </div>
+      <div class="xl"><div>100 blocks</div><div>1 day</div><div>7 days</div><div>30 days</div></div>
+      <div style="margin-top:18px;font-size:22px;color:var(--ink-2)">At 30 days the naive rule is worse than a coin flip: <span class="mono" style="color:var(--ink)">2,284</span> coincidences vs <span class="mono" style="color:var(--ink)">4,133</span> links.</div>
+    </div>
+  </div>
+  <div class="foot"><div><span class="dot"></span>Source: web/public/data/evaluation.json · engine/scripts/evaluate.ts</div><div>05</div></div>
+</section>
+
+<!-- 06 OTHER FINDINGS -->
+<section class="slide">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>06 · What else the chain says</div></div>
+  <p class="eyebrow">75.6 days · 584,497 transactions</p>
+  <h2 style="font-size:88px">The pools are busy. <em>The edges are not.</em></h2>
+  <div class="grid4">
+    <div class="panel card">
+      <div class="n">15,668</div>
+      <div class="t">Round trips: pool → t → pool</div>
+      <div class="d">Re-shielding the very coins just deshielded links both sides deterministically. <b>7,370</b> within 10 blocks; spread over <b>17,326</b> addresses, so it is common behaviour, not one actor. <b>756</b> left frozen Orchard this way (~101k ZEC) instead of the turnstile.</div>
+    </div>
+    <div class="panel card">
+      <div class="n">3.27M <em>ZEC</em></div>
+      <div class="t">Orchard → Ironwood migrations, amounts public</div>
+      <div class="d"><b>24,725</b> migration transactions. <b>74%</b> used standard ZIP-318 denominations (good). <b>3,763</b> used an amount unique in its window: a fingerprint.</div>
+    </div>
+    <div class="panel card">
+      <div class="n">16,510</div>
+      <div class="t">Address reuse</div>
+      <div class="d">Shieldings from an address that earlier received a deshielding, across <b>1,442</b> addresses. <b>66.3%</b> come from one address, very likely a service rather than a person.</div>
+    </div>
+    <div class="panel card">
+      <div class="n">3 Sep <em>burst</em></div>
+      <div class="t">One address, ~19× normal shielding</div>
+      <div class="d">~5,500 shieldings into Ironwood in one day (blocks ~3,470,300–3,470,960); <b>1,548</b> of them (~3,000 ZEC) funded from a single transparent address. Visible on the observatory's daily chart.</div>
+    </div>
+  </div>
+  <div class="foot"><div><span class="dot"></span>Source: summary.json · docs/FINDINGS.md</div><div>06</div></div>
+</section>
+
+<!-- 07 PRODUCT -->
+<section class="slide">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>07 · The product</div></div>
+  <h2 style="font-size:80px">See it <em>before they do.</em> <span class="dim" style="font-size:40px;font-family:var(--sans)">Four tools, all running in your browser.</span></h2>
+  <div class="shots">
+    <div class="shot"><div class="frame"><img src="assets/img/observatory-desktop.png" style="margin-top:-58%" alt=""></div>
+      <div class="cap"><span class="ix">01</span><span class="nm">Observatory</span><span class="ds">every boundary event since Ironwood; links drawn as threads</span></div></div>
+    <div class="shot"><div class="frame"><img src="assets/img/check-desktop.png" style="margin-top:-62.3%" alt=""></div>
+      <div class="cap"><span class="ix">02</span><span class="nm">Check</span><span class="ds">any txid; fetches only a 1/256 shard</span></div></div>
+    <div class="shot"><div class="frame"><img src="assets/img/plan-desktop.png" style="margin-top:-42%" alt=""></div>
+      <div class="cap"><span class="ix">03</span><span class="nm">Plan</span><span class="ds">pre-flight score + ZIP-318 split with random delays</span></div></div>
+    <div class="shot"><div class="frame"><img src="assets/img/scan-desktop.png" style="margin-top:-40%" alt=""></div>
+      <div class="cap"><span class="ix">04</span><span class="nm">Scan</span><span class="ds">viewing-key scanner in WASM; the key never leaves the tab</span></div></div>
+  </div>
+  <div class="foot"><div><span class="dot"></span>Static site · no backend, no analytics, no cookies, no runtime third-party scripts</div><div>07</div></div>
+</section>
+
+<!-- 08 WALLETS -->
+<section class="slide s-wallet">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>08 · For wallets</div></div>
+  <div class="wrapw">
+    <div>
+      <p class="eyebrow">@leakscope/engine · pre-flight SDK</p>
+      <h2 style="font-size:92px">Lint the send <em>before Send.</em></h2>
+<pre class="code panel" style="margin-top:44px"><span class="k">import</span> { checkSend, loadPublishedContext } <span class="k">from</span> <span class="s">'@leakscope/engine'</span>;
+
+<span class="k">const</span> ctx = <span class="k">await</span> <span class="f">loadPublishedContext</span>();  <span class="c">// public dataset, once</span>
+<span class="k">const</span> v = <span class="f">checkSend</span>({
+  from: <span class="s">'orchard'</span>, to: <span class="s">'transparent'</span>,
+  amountZat: <span class="o">1_234_560_000</span>, toAddress: <span class="s">'t1…'</span>,
+}, ctx);
+
+v.level;          <span class="c">// 'danger'   score 5 / 100</span>
+v.headline;       <span class="c">// '12.3456 ZEC would be unique on-chain: …'</span>
+v.suggestedSplit; <span class="c">// ZIP-318 parts + random broadcast schedule</span></pre>
+      <div class="ticks"><div><b>~32 KiB</b> ESM, zero deps</div><div><b>Node + browser</b></div><div><b>28</b> tests</div><div>runs <b>on-device</b></div></div>
+    </div>
+    <div class="phone"><img src="assets/img/wallet-confirm.png" alt=""></div>
+  </div>
+  <div class="foot"><div><span class="dot"></span>examples/wallet-confirm · a “Confirm send” screen using checkSend()</div><div>08</div></div>
+</section>
+
+<!-- 09 ARCHITECTURE -->
+<section class="slide">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>09 · Architecture</div></div>
+  <p class="eyebrow">Open source · MIT OR Apache-2.0 · fully reproducible</p>
+  <h2 style="font-size:92px">One Rust core, <em>everywhere.</em></h2>
+  <div class="pipe">
+    <div class="pc"><div class="node src"><div class="nm">lightwalletd / Zaino</div><div class="ds"><span class="acc mono">gRPC</span> · public mainnet, testnet, regtest</div></div></div>
+    <div class="ar">→</div>
+    <div class="pc"><div class="node"><div class="nm">core/ <span>Rust</span></div><div class="ds">tx parser v4–v6 incl. Ironwood; viewing-key scanner (Sapling, Orchard, Ironwood) → native + WASM, ~281 KB brotli</div></div>
+      <div class="node"><div class="nm">indexer/ <span>Node</span></div><div class="ds">compact blocks → txs; raw tx fetched only where a boundary can leak</div></div></div>
+    <div class="ar">→</div>
+    <div class="pc"><div class="node"><div class="nm">engine/ <span>TypeScript</span></div><div class="ds">detectors · reverse-time calibration · ZIP-318 planner · pre-flight. Same code in Node and the browser.</div></div></div>
+    <div class="ar">→</div>
+    <div class="pc"><div class="node out"><div class="nm">web/ <span>Next.js static</span></div><div class="ds">/ · /check · /plan · /scan (WASM, key stays in tab) · /method</div></div>
+      <div class="node out"><div class="nm">@leakscope/engine</div><div class="ds">SDK for wallets</div></div>
+      <div class="node out"><div class="nm">cli/</div><div class="ds">leakscope check | plan | scan</div></div></div>
+  </div>
+  <div class="foot"><div><span class="dot"></span>github.com/AdityaWisnuu/leakscope · README → Reproduce</div><div>09</div></div>
+</section>
+
+<!-- 10 IMPACT -->
+<section class="slide">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>10 · Why it matters</div></div>
+  <p class="eyebrow">Turning “leaks are disqualifying” into a product</p>
+  <h2>Privacy fails at the edges. <em>Now it's measured.</em></h2>
+  <div class="imp">
+    <div class="panel card"><div class="who">For users</div><div class="hd">Know before you send.</div><div class="d">A score, the crowd your amount hides in, and a safer ZIP-318 plan, computed locally. Plain advice: don't deshield and re-shield the same coins; don't withdraw the note you just deposited.</div></div>
+    <div class="panel card"><div class="who">For wallets</div><div class="hd">Warn at the confirm screen.</div><div class="d">The same detectors that produced this report run as an embeddable SDK: refuse round trips, flag reused addresses, default to standard denominations and randomized delays.</div></div>
+    <div class="panel card"><div class="who">For Zcash</div><div class="hd">Evidence for ZIP-318.</div><div class="d">First post-Ironwood measurement of boundary privacy. <b>74%</b> of migrations already use standard denominations; the other <b>26%</b>, and <b>3,763</b> unique amounts, show what wallets still need to fix.</div></div>
+  </div>
+  <p class="note" style="margin-top:56px">Every number in this deck is reproducible from public chain data and open code: <span class="mono">report.ts</span> + <span class="mono">evaluate.ts</span>. Ground truth: our own deliberate testnet mistakes were caught, each leak class reproduced on regtest, mainnet examples spot-checked on an independent explorer.</p>
+  <div class="foot"><div><span class="dot"></span>Open data: summary.json, evaluation.json, examples.json, links.json</div><div>10</div></div>
+</section>
+
+<!-- 11 ROADMAP -->
+<section class="slide">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>11 · Roadmap</div></div>
+  <p class="eyebrow">Goals, not announcements</p>
+  <h2>From a report to <em>a default.</em></h2>
+  <div class="road">
+    <div class="st now"><div class="when">Shipped · Oct 2026</div><div class="hd">Live toolchain</div><ul><li>Observatory, Check, Plan, Scan</li><li>Calibrated detectors + CLI</li><li>Engine SDK with wallet example</li></ul></div>
+    <div class="st"><div class="when">Next</div><div class="hd">Publish the SDK</div><ul><li><span class="mono">@leakscope/engine</span> on npm</li><li>PCZT input: lint the exact tx a wallet is about to sign</li></ul></div>
+    <div class="st"><div class="when">Then</div><div class="hd">Into wallets</div><ul><li>Target integrations: Zashi, Zingo and other Zcash wallets</li><li>Warnings on round trips, reuse, unique amounts</li></ul></div>
+    <div class="st"><div class="when">Ongoing</div><div class="hd">Stay current</div><ul><li>Continuous indexing, live observatory</li><li>NU7 support and re-validation</li><li>Ironwood-only analytics: timing &amp; arity inside the pool</li></ul></div>
+  </div>
+  <div class="foot"><div><span class="dot"></span>Integrations listed are targets we intend to pursue, not existing partnerships</div><div>11</div></div>
+</section>
+
+<!-- 12 CLOSE -->
+<section class="slide">
+  <div class="top"><div class="brand"><img src="assets/img/icon.svg" alt="">Leakscope</div><div>ZECATHON 2026</div></div>
+  <svg class="reticle" viewBox="0 0 560 560" fill="none">
+    <circle cx="280" cy="280" r="200" stroke="#323a37" stroke-width="2"/>
+    <circle cx="280" cy="280" r="120" stroke="#232927" stroke-width="2"/>
+    <path d="M280 20v150M280 390v150M20 280h150M390 280h150" stroke="#868c86" stroke-width="2"/>
+    <circle cx="280" cy="280" r="26" fill="#ff5a2c"/>
+    <path d="M280 280 C 360 200, 430 150, 540 110" stroke="#ff5a2c" stroke-width="2" opacity=".8"/>
+    <path d="M280 280 C 330 330, 420 420, 520 470" stroke="#ff5a2c" stroke-width="2" opacity=".5"/>
+    <path d="M280 280 C 200 360, 140 430, 60 500" stroke="#ff5a2c" stroke-width="2" opacity=".35"/>
+  </svg>
+  <p class="eyebrow">Try it in two minutes</p>
+  <h1 style="font-size:150px">Check the leak<br><em>before</em> you send.</h1>
+  <div class="links">
+    <div class="k">Live</div><div class="v">leakscope-cyan.vercel.app</div>
+    <div class="k">Code</div><div class="v">github.com/AdityaWisnuu/leakscope</div>
+    <div class="k">Findings</div><div class="v">docs/FINDINGS.md</div>
+    <div class="k">Video</div><div class="v ph">demo video · link in the submission</div>
+  </div>
+  <div class="foot"><div><span class="dot"></span>Built by Adit · @AdityaWisnuu</div><div>MIT OR Apache-2.0</div></div>
+</section>
+
+</body>
+</html>

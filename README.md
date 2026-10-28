@@ -2,7 +2,7 @@
 
 **A privacy linter and observatory for Zcash: it finds where your transactions leak, before and after you send them.**
 
-Live: **https://leakscope-cyan.vercel.app** · Findings write-up: [docs/FINDINGS.md](docs/FINDINGS.md) · License: MIT OR Apache-2.0
+Live: **https://leakscope-cyan.vercel.app** · Demo video (2 min): [demo.mp4](https://leakscope-cyan.vercel.app/demo.mp4) · Pitch deck: [deck.pdf](https://leakscope-cyan.vercel.app/deck.pdf) · Findings write-up: [docs/FINDINGS.md](docs/FINDINGS.md) · License: MIT OR Apache-2.0
 
 ## The problem
 

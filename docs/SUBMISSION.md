@@ -55,7 +55,8 @@ Everything is open, static and reproducible, with a CLI (`leakscope check | plan
 - Repository: https://github.com/AdityaWisnuu/leakscope
 - Live site: https://leakscope-cyan.vercel.app
 - Findings write-up: https://github.com/AdityaWisnuu/leakscope/blob/main/docs/FINDINGS.md
-- Demo video: `<VIDEO_URL>`
+- Demo video (1:57): https://leakscope-cyan.vercel.app/demo.mp4
+- Pitch deck: https://leakscope-cyan.vercel.app/deck.pdf
 
 ## Team
 

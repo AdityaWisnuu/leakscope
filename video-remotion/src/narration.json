@@ -1,0 +1,82 @@
+{
+  "intro-0": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/intro-0.wav",
+    "dur": 4.454833,
+    "text": "Zcash's shielded pools are a vault. Sender, receiver and amount stay hidden."
+  },
+  "intro-1": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/intro-1.wav",
+    "dur": 2.501583,
+    "text": "But the vault has doors. And the doors are public."
+  },
+  "leak-0": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/leak-0.wav",
+    "dur": 4.281417,
+    "text": "Every time money enters or leaves, the exact amount lands on the public chain."
+  },
+  "leak-1": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/leak-1.wav",
+    "dur": 10.417917,
+    "text": "Someone shielded 2.50121076 ZEC. Nine minutes later, 2.50106076 came out: the same amount, minus the 15,000 zatoshi fee."
+  },
+  "stat-0": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/stat-0.wav",
+    "dur": 9.327979,
+    "text": "Leakscope models an observer with only the public chain. Over 75 days since the Ironwood pool launched, 24.6% of withdrawals can be traced."
+  },
+  "acc-0": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/acc-0.wav",
+    "dur": 7.659229,
+    "text": "Are the links real? We run the same rule backwards in time. Money can't leave before it arrives, so every backward match is a coincidence."
+  },
+  "acc-1": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/acc-1.wav",
+    "dur": 5.734479,
+    "text": "That measures the false-link rate on the real chain: the fastest links are about 99% precise."
+  },
+  "check-0": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/check-0.wav",
+    "dur": 3.666979,
+    "text": "Check takes any mainnet transaction and shows what anyone can see about it."
+  },
+  "check-1": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/check-1.wav",
+    "dur": 8.056375,
+    "text": "This withdrawal matches exactly one earlier deposit, 7 blocks before. Anonymity set: one. The lookup never leaves your tab."
+  },
+  "plan-0": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/plan-0.wav",
+    "dur": 6.709708,
+    "text": "Pre-flight checks a transfer before you make it. Say, 7.7 ZEC from Ironwood to an exchange."
+  },
+  "plan-1": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/plan-1.wav",
+    "dur": 5.520375,
+    "text": "Only one other recent transfer used that amount. Privacy score: 25 out of 100."
+  },
+  "plan-2": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/plan-2.wav",
+    "dur": 6.612021,
+    "text": "The fix: standard ZIP-318 denominations at random intervals, each hiding among hundreds of look-alikes."
+  },
+  "scan-0": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/scan-0.wav",
+    "dur": 5.750708,
+    "text": "Scan finds the leaks in your own wallet. It decrypts on your device; the viewing key never leaves the browser."
+  },
+  "scan-1": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/scan-1.wav",
+    "dur": 5.809521,
+    "text": "Here, coins were deshielded and immediately re-shielded: a critical round trip, linked with certainty."
+  },
+  "sdk-0": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/sdk-0.wav",
+    "dur": 5.656958,
+    "text": "Wallet developers get the same engine as an SDK: one call to checkSend, before the user hits send."
+  },
+  "outro-0": {
+    "wav": "/Users/adityawisnu/Documents/projects/zecathon/leakscope/video-remotion/public/audio/outro-0.wav",
+    "dur": 6.483458,
+    "text": "Leakscope. See the leak before you send. Open source, at leakscope-cyan.vercel.app."
+  }
+}
