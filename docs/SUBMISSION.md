@@ -18,7 +18,7 @@ Leakscope is privacy tooling for Zcash wallets: an SDK whose `checkSend()` warns
 
 Shielded Zcash hides sender, receiver and amount, but the edges of the pools are public. Shielding, deshielding and moving between Sapling, Orchard and Ironwood put exact amounts, addresses and timing on chain. Since NU6.3 made Orchard withdraw-only, every Orchard holder has to cross one of these boundaries, and wallets give no warning before they do. Leakscope is the tooling for that moment:
 
-- **Wallet SDK** `@leakscope/engine` 0.1.0 ([release](https://github.com/AdityaWisnuu/leakscope/releases/tag/engine-v0.1.0); npm registry publish pending): `checkSend()` returns ok / warn / danger, a score and a ZIP-318 split before the user signs. It runs locally in Node and browsers, and the dataset can be self-hosted.
+- **Wallet SDK** `@leakscope/engine` 0.1.0 ([release](https://github.com/AdityaWisnuu/leakscope/releases/tag/engine-v0.1.0); on npm: [@leakscope/engine](https://www.npmjs.com/package/@leakscope/engine)): `checkSend()` returns ok / warn / danger, a score and a ZIP-318 split before the user signs. It runs locally in Node and browsers, and the dataset can be self-hosted.
 - **Pre-flight planner** (`/plan`, CLI `plan`): scores a move by the crowd its amount hides in and proposes ZIP-318 denominations with randomized delays.
 - **Viewing-key scanner**: Rust (Sapling/Orchard/Ironwood) compiled to WASM (~281 KB brotli). It finds your own leaks in the browser, and the key never leaves the tab.
 - **Indexer and parser**: a Rust v4–v6 transaction parser and a lightwalletd/Zaino indexer that fetches raw transactions only where a boundary can leak. CI runs the Rust, engine and web tests.
@@ -68,4 +68,4 @@ The evidence behind the warnings: we indexed mainnet from Ironwood activation (b
 2. **(1 min)** Open https://leakscope-cyan.vercel.app/check#c6b771a76de69246007c1879e3378f2627664c41244ee650ef1d4ab8845157fd: a 2.50121076 ZEC shielding linked to a 2.50106076 ZEC deshielding seven blocks later (difference = the 15,000-zatoshi fee). Verify on any explorer.
 3. **(1 min)** Open `/plan`, enter Orchard → Ironwood with an odd amount (e.g. 13.37 ZEC). See the score and the ZIP-318 split with delays.
 4. **(1 min)** Open `/scan`, click **Use testnet demo key**, run the scan. Open devtools → Network: the key is never sent; only compact block ranges are requested.
-5. **(1 min)** SDK: `npm install https://github.com/AdityaWisnuu/leakscope/releases/download/engine-v0.1.0/leakscope-engine-0.1.0.tgz`, then run the 3-line `checkSend` from the README. Or open `/method` for every rule and check `web/public/data/evaluation.json` for the null-model numbers.
+5. **(1 min)** SDK: `npm install @leakscope/engine`, then run the 3-line `checkSend` from the README. Or open `/method` for every rule and check `web/public/data/evaluation.json` for the null-model numbers.

@@ -2,10 +2,10 @@
 
 Both use the built package in `engine/dist` (run `cd engine && bun install && bun run build` first if it is missing).
 
-In your own project, install the released 0.1.0 tarball (npm registry publish is pending):
+In your own project, install from npm:
 
 ```sh
-npm install https://github.com/AdityaWisnuu/leakscope/releases/download/engine-v0.1.0/leakscope-engine-0.1.0.tgz
+npm install @leakscope/engine
 ```
 
 ```js

@@ -13,7 +13,7 @@ Shielded Zcash transactions hide sender, receiver, amount and memo. The *edges* 
 ## Use it in a wallet
 
 ```sh
-npm install https://github.com/AdityaWisnuu/leakscope/releases/download/engine-v0.1.0/leakscope-engine-0.1.0.tgz
+npm install @leakscope/engine
 ```
 
 ```js
@@ -23,7 +23,7 @@ const v = checkSend({ from: 'orchard', to: 'transparent', amountZat: 1_234_560_0
 // v.level 'danger', v.headline '12.3456 ZEC would be unique on-chain: ...', v.suggestedSplit: ZIP-318 parts + delays
 ```
 
-The release tarball installs as `@leakscope/engine`. Publishing to the npm registry is pending. The check runs
+Published on npm as [`@leakscope/engine`](https://www.npmjs.com/package/@leakscope/engine). The check runs
 locally; the only network traffic is two static dataset files that are the same for every user (see
 [engine/README.md](engine/README.md)).
 
@@ -116,7 +116,7 @@ Leakscope adds:
 
 - `core/` — Rust. Parses raw transactions into public facts (transparent ins/outs, per-pool action counts, value balances, fee) and scans compact blocks with a UFVK. Builds a native `leakscope-parse` binary and WASM packages (`pkg-node`, `pkg-web`).
 - `indexer/` — Node. Builds a dataset from any lightwalletd-compatible server. `scan-wallet.mjs` finds a wallet's own transactions from its UFVK.
-- `engine/` — TypeScript leak detectors, calibration, ZIP-318 denomination planner and pre-flight scoring. Runs unchanged in Node and the browser. Released as the wallet SDK `@leakscope/engine` 0.1.0 ([release tarball](https://github.com/AdityaWisnuu/leakscope/releases/tag/engine-v0.1.0); npm registry publish pending), with runnable [examples](examples/).
+- `engine/` — TypeScript leak detectors, calibration, ZIP-318 denomination planner and pre-flight scoring. Runs unchanged in Node and the browser. Released as the wallet SDK `@leakscope/engine` 0.1.0 ([release tarball](https://github.com/AdityaWisnuu/leakscope/releases/tag/engine-v0.1.0); [npm](https://www.npmjs.com/package/@leakscope/engine)), with runnable [examples](examples/).
 - `cli/` — `leakscope check | plan | scan`.
 - `validation/` — testnet ground truth (checked in CI) and the local regtest harness.
 - `web/` — Next.js static export. No server code, no analytics, no cookies, no third-party scripts at runtime.

@@ -43,7 +43,7 @@ const CLASSES: { kind: FindingKind; name: string; body: string }[] = [
 ];
 
 const REPO = REPO_URL || 'https://github.com/AdityaWisnuu/leakscope';
-const SDK_TGZ = 'https://github.com/AdityaWisnuu/leakscope/releases/download/engine-v0.1.0/leakscope-engine-0.1.0.tgz';
+const SDK_TGZ = '@leakscope/engine';
 
 export default function Observatory() {
   const s = getSummary();
@@ -266,7 +266,7 @@ export default function Observatory() {
               score, a one-line headline for the confirmation screen, and a ZIP-318 split when one would help.
             </p>
             <p className="small dim" style={{ margin: 0 }}>
-              Install from the repository&apos;s release (npm publish pending):
+              Install from npm:
             </p>
             <pre className="code" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>npm install {SDK_TGZ}</pre>
             <p className="media-links" style={{ margin: 0 }}>

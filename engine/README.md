@@ -13,13 +13,11 @@ Pre-flight privacy checks for Zcash wallets. Before the user presses **Send**, a
 ## Install
 
 ```sh
-npm install https://github.com/AdityaWisnuu/leakscope/releases/download/engine-v0.1.0/leakscope-engine-0.1.0.tgz
+npm install @leakscope/engine
 ```
 
-This is the packed 0.1.0 tarball attached to the
-[engine-v0.1.0 GitHub release](https://github.com/AdityaWisnuu/leakscope/releases/tag/engine-v0.1.0). It
-installs as `@leakscope/engine`, so imports are the same as they will be from the registry. Publishing to the
-npm registry (`npm install @leakscope/engine`) is pending.
+Published on npm as [`@leakscope/engine`](https://www.npmjs.com/package/@leakscope/engine). The same 0.1.0 tarball is
+attached to the [engine-v0.1.0 GitHub release](https://github.com/AdityaWisnuu/leakscope/releases/tag/engine-v0.1.0).
 
 To build the tarball yourself:
 
