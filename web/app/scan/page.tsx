@@ -34,8 +34,9 @@ export default function ScanPage() {
             analysis yet.
           </li>
           <li>
-            The block proxy sees your IP address and the height range you asked for. Use a VPN or Tor if that matters,
-            or scan a wider range than your activity.
+            The block proxy (a public lightwalletd server run by ChainSafe) sees your IP address and the height range
+            requested, with the start rounded down to a multiple of 1,000. Use a VPN or Tor if that matters, or scan a
+            wider range than your activity.
           </li>
         </ul>
       </section>

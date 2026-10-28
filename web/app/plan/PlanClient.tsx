@@ -5,7 +5,10 @@ import { BLOCK_SECONDS } from '@/lib/constants';
 import { crowd, loadBoundaryAddresses, loadLocalChain, runPreflight, type LocalChain } from '@/lib/chain';
 import type { AddrSet } from '@/lib/addrSet';
 import { decompose, decomposeRandomized, isDenomination, schedule, type PreflightResult, type ScheduledPart } from '@/lib/engine';
-import { num, zec } from '@/lib/format';
+import { num, zec, zecRounded } from '@/lib/format';
+
+/** Amount for reading: 10,000 rather than 10000, all decimals kept. */
+const zecRead = (z: number) => zecRounded(z, 8);
 import type { Pool } from '@/lib/types';
 
 const POOLS: { id: Pool; label: string }[] = [
@@ -16,13 +19,17 @@ const POOLS: { id: Pool; label: string }[] = [
 ];
 
 function parseZec(s: string): number | null {
-  const m = /^\s*(\d{0,9})(?:\.(\d{0,8}))?\s*$/.exec(s);
+  // Accept "1,5" as well as "1.5" (comma decimals), but not thousands separators like "1,000.5".
+  const t = s.trim().replace(/\s*zec$/i, '');
+  const norm = /^\d*,\d+$/.test(t) ? t.replace(',', '.') : t;
+  const m = /^(\d{0,9})(?:\.(\d{0,8}))?$/.exec(norm);
   if (!m || (!m[1] && !m[2])) return null;
   const z = Number(m[1] || '0') * 1e8 + Number((m[2] ?? '').padEnd(8, '0'));
   return z > 0 ? z : null;
 }
 
-const fmtClock = (d: Date) => d.toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+const fmtClock = (d: Date) => d.toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+const plural = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n === 1 ? one : many}`;
 
 export function PlanClient({ tip, tipTime, indexKB }: { tip: number; tipTime: number; indexKB: number }) {
   const [chain, setChain] = useState<LocalChain | null>(null);
@@ -43,6 +50,10 @@ export function PlanClient({ tip, tipTime, indexKB }: { tip: number; tipTime: nu
 
   useEffect(() => {
     loadLocalChain().then(setChain, (e) => setLoadErr(String(e?.message ?? e)));
+    // The boundary-address set is fetched on page load for every visitor, so the request says
+    // nothing about whether (or when) someone typed an address.
+    wantAddrs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const result: PreflightResult | null = useMemo(() => {
@@ -78,12 +89,14 @@ export function PlanClient({ tip, tipTime, indexKB }: { tip: number; tipTime: nu
     e?.preventDefault();
     const z = parseZec(amount);
     if (z == null) {
-      setErr('Enter an amount in ZEC, up to 8 decimals.');
+      setSubmitted(null);
+      setErr('Enter an amount like 7.7 or 12.3456 ZEC (up to 8 decimals).');
       amountRef.current?.focus();
       return;
     }
     if (to === 'orchard' && from !== 'orchard') {
-      setErr('Orchard is frozen since NU6.3: it can only be withdrawn from.');
+      setSubmitted(null);
+      setErr('Orchard is frozen since NU6.3: you can only move funds out of it.');
       return;
     }
     setErr(null);
@@ -96,7 +109,17 @@ export function PlanClient({ tip, tipTime, indexKB }: { tip: number; tipTime: nu
     };
     if (next.toAddr || next.fromAddrs.length) wantAddrs();
     setSubmitted(next);
-    requestAnimationFrame(() => resultRef.current?.focus({ preventScroll: true }));
+    // On narrow screens the result sits below the form: bring it into view.
+    requestAnimationFrame(() => {
+      const el = resultRef.current;
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      const r = el.getBoundingClientRect();
+      if (r.top > window.innerHeight * 0.6 || r.top < 0) {
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      }
+    });
   };
 
   const preset = (f: Pool, t: Pool, amt: string) => {
@@ -115,19 +138,28 @@ export function PlanClient({ tip, tipTime, indexKB }: { tip: number; tipTime: nu
           </span>
         </div>
         <div className="panel-body form-stack">
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" className="btn sm" onClick={() => preset('orchard', 'ironwood', '37.2814')}>
-              Migrate my Orchard balance
-            </button>
-            <button type="button" className="btn ghost sm" onClick={() => preset('ironwood', 'transparent', '12.5')}>
-              Withdraw to an exchange
-            </button>
-            <button type="button" className="btn ghost sm" onClick={() => preset('transparent', 'ironwood', '5')}>
-              Shield from an exchange
-            </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label="Common transfers">
+            {(
+              [
+                ['ironwood', 'transparent', '12.5', 'Withdraw to an exchange'],
+                ['transparent', 'ironwood', '5', 'Shield from an exchange'],
+                ['orchard', 'ironwood', '37.2814', 'Migrate my Orchard balance'],
+              ] as const
+            ).map(([f, t, amt, label]) => {
+              const on = from === f && to === t;
+              return (
+                <button key={label} type="button" className={`btn sm${on ? '' : ' ghost'}`} aria-pressed={on} onClick={() => preset(f, t, amt)}>
+                  {label}
+                </button>
+              );
+            })}
           </div>
           <PoolPick legend="From" name="from" value={from} onChange={setFrom} />
           <PoolPick legend="To" name="to" value={to} onChange={setTo} disable={(p) => p === 'orchard' && from !== 'orchard'} />
+          <p className="hint small dim" style={{ margin: '-8px 0 0' }}>
+            Transp. = a public transparent (t1…) address, such as an exchange. Orchard is frozen: you can only move funds
+            out of it.
+          </p>
           <label className="field">
             <span>Amount (ZEC)</span>
             <input
@@ -144,19 +176,19 @@ export function PlanClient({ tip, tipTime, indexKB }: { tip: number; tipTime: nu
           {to === 'transparent' && (
             <label className="field">
               <span>Destination t-address (optional)</span>
-              <input type="text" value={toAddr} onChange={(e) => setToAddr(e.target.value)} onFocus={wantAddrs} placeholder="t1…" spellCheck={false} autoComplete="off" />
+              <input type="text" value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder="t1…" spellCheck={false} autoComplete="off" />
               <span className="hint">Checked against every address seen at a pool boundary.</span>
             </label>
           )}
           {from === 'transparent' && (
             <label className="field">
               <span>Source t-addresses (optional)</span>
-              <textarea value={fromAddrs} onChange={(e) => setFromAddrs(e.target.value)} onFocus={wantAddrs} placeholder="t1… t1…" spellCheck={false} autoComplete="off" rows={2} />
+              <textarea value={fromAddrs} onChange={(e) => setFromAddrs(e.target.value)} placeholder="t1… t1…" spellCheck={false} autoComplete="off" rows={2} />
             </label>
           )}
           <label className="check">
             <input type="checkbox" checked={randomized} onChange={(e) => setRandomized(e.target.checked)} />
-            <span>Randomized ZIP-318 split (instead of the deterministic one)</span>
+            <span>Shuffle the split (harder to predict than the standard digit-by-digit one)</span>
           </label>
           {err && (
             <p id="amount-err" role="alert" className="small" style={{ color: 'var(--accent-ink)', margin: 0 }}>
@@ -180,22 +212,24 @@ export function PlanClient({ tip, tipTime, indexKB }: { tip: number; tipTime: nu
       <div className="stack">
         <PrivacyNote>
           <strong>Runs entirely in your browser.</strong> The page downloads the same public history for everyone,
-          then judges your plan locally. Amounts and addresses you type are never sent anywhere.
+          including the full list of boundary addresses, then judges your plan locally. Amounts and addresses you type
+          are never sent anywhere.
         </PrivacyNote>
-        <div ref={resultRef} tabIndex={-1} aria-live="polite" className="stack" style={{ outline: 'none' }}>
+        <div ref={resultRef} tabIndex={-1} aria-live="polite" className="stack" style={{ outline: 'none', scrollMarginTop: 96 }}>
           {submitted && !result && chain && addrBusy ? (
             <div className="empty">
               <p style={{ margin: 0 }}>Checking addresses against the boundary set…</p>
             </div>
           ) : result && submitted ? (
-            <Result r={result} amount={submitted.amount} plan={plan} onReshuffle={() => setSeed((s) => s + 1)} />
+            <Result r={result} amount={submitted.amount} plan={plan} to={submitted.to} onReshuffle={() => setSeed((s) => s + 1)} />
           ) : (
             <div className="empty">
               <h2>Before you broadcast.</h2>
               <p style={{ margin: 0 }}>
                 Describe a transfer that crosses a pool boundary. Pre-flight tells you what will be public, how many
                 recent transactions it would hide among, and how to do the same thing without the leak: a ZIP-318 split
-                into standard amounts, spread over time.
+                into standard amounts, spread over time. ZIP 318 is a Zcash standard: everyone uses the same set of
+                amounts (1, 2, 5, 10… ZEC), so no single transfer stands out.
               </p>
             </div>
           )}
@@ -259,15 +293,29 @@ function Gauge({ score }: { score: number }) {
   );
 }
 
+type PlanView = { nowTip: number; residual: number; sched: ScheduledPart[]; crowd: Map<number, number> };
+
+/** Plain-language line under the gauge. Never claims "cannot tell them apart" for a small crowd. */
+function crowdText(set: number | null) {
+  if (set == null) return 'Staying inside one pool keeps the amount encrypted.';
+  const others = set - 1;
+  if (others === 0) return 'No other recent boundary event has this amount (allowing for fees). It would be unique.';
+  if (set < 10)
+    return `Only ${plural(others, 'other recent transfer')} used this amount (allowing for fees), so an observer has just ${num(set)} candidates to choose from.`;
+  return `${plural(others, 'other recent boundary event')} share this amount, allowing for fees. An observer cannot easily tell them apart.`;
+}
+
 function Result({
   r,
   amount,
   plan,
+  to,
   onReshuffle,
 }: {
   r: PreflightResult;
   amount: number;
-  plan: { nowTip: number; residual: number; sched: ScheduledPart[]; crowd: Map<number, number> } | null;
+  to: Pool;
+  plan: PlanView | null;
   onReshuffle: () => void;
 }) {
   return (
@@ -288,11 +336,7 @@ function Result({
           <div>
             <p className="verdict">{verdict(r.score, r.revealsAmount)}</p>
             <p className="ink2" style={{ margin: 0 }}>
-              {r.anonymitySet == null
-                ? 'Staying inside one pool keeps the amount encrypted.'
-                : r.anonymitySet === 1
-                  ? 'No other recent boundary event has this amount (allowing for fees). It would be unique.'
-                  : `${num(r.anonymitySet - 1)} other recent boundary events share this amount, allowing for fees. An observer cannot tell them apart.`}
+              {crowdText(r.anonymitySet)}
             </p>
           </div>
         </div>
@@ -306,27 +350,80 @@ function Result({
           <p style={{ margin: 0 }}>{w.detail}</p>
         </article>
       ))}
-      {r.suggestions.map((s, i) => (
-        <article key={i} className="finding">
-          <div className="finding-top">
-            <span className="label">Suggestion</span>
-          </div>
-          <h3>{s.title}</h3>
-          <p style={{ margin: s.schedule ? '0 0 12px' : 0 }}>{s.detail}</p>
-          {s.schedule && plan && <Timeline plan={plan} onReshuffle={onReshuffle} />}
-        </article>
-      ))}
+      {r.suggestions.map((s, i) =>
+        s.schedule && plan ? (
+          <SplitCard key={i} plan={plan} exactSet={r.anonymitySet ?? 1} to={to} onReshuffle={onReshuffle} />
+        ) : (
+          <article key={i} className="finding">
+            <div className="finding-top">
+              <span className="label">Suggestion</span>
+            </div>
+            <h3>{s.title}</h3>
+            <p style={{ margin: 0 }}>{s.detail}</p>
+          </article>
+        ),
+      )}
     </>
   );
 }
 
-function Timeline({
-  plan,
-  onReshuffle,
-}: {
-  plan: { nowTip: number; residual: number; sched: ScheduledPart[]; crowd: Map<number, number> };
-  onReshuffle: () => void;
-}) {
+/**
+ * The ZIP-318 split, written here rather than taken from the engine's text so the numbers match
+ * the schedule actually shown (which may be the shuffled split), and so a split that does not
+ * help is called what it is.
+ */
+function SplitCard({ plan, exactSet, to, onReshuffle }: { plan: PlanView; exactSet: number; to: Pool; onReshuffle: () => void }) {
+  const parts = plan.sched.map((p) => p.amount);
+  const crowds = parts.map((p) => plan.crowd.get(p) ?? 1);
+  const minSet = Math.min(...crowds);
+  const weakest = parts[crowds.indexOf(minSet)];
+  const helps = minSet > exactSet;
+  const n = parts.length;
+  if (!helps) {
+    return (
+      <article className="finding">
+        <div className="finding-top">
+          <span className="label">Suggestion</span>
+        </div>
+        <h3>Splitting won&apos;t hide this amount.</h3>
+        <p style={{ margin: 0 }}>
+          A ZIP-318 split would need a {zecRead(weakest)} ZEC piece, and{' '}
+          {minSet <= 1 ? 'no one else' : `only ${plural(minSet - 1, 'other transfer')}`} moved that amount recently, so
+          the parts would stand out about as much as the whole. Consider spreading it over several days in smaller
+          standard amounts (1, 2, 5, 10… ZEC), or accept that this transfer will be visible.
+        </p>
+      </article>
+    );
+  }
+  return (
+    <article className="finding">
+      <div className="finding-top">
+        <span className="label">Suggestion</span>
+      </div>
+      <h3>Split into {plural(n, 'standard ZIP-318 amount')}, spread over time</h3>
+      <p>
+        {parts
+          .slice()
+          .sort((a, b) => b - a)
+          .map((p) => zecRead(p))
+          .join(' + ')}{' '}
+        ZEC. Standard amounts are shared by every wallet that follows ZIP 318: the smallest crowd among these parts is{' '}
+        {num(minSet)}, versus {num(exactSet)} for the exact amount. Sending them at random, spaced-out times (about 82
+        minutes apart on average) breaks the timing link too.
+      </p>
+      <div className="callout">
+        <p>
+          <strong>How to do this in your wallet:</strong> send the amounts below as separate transactions
+          {to === 'transparent' ? ', each to a fresh address,' : ''} roughly at the times shown. Don&apos;t send them all
+          at once; spacing them out is half the protection. Wallets that support ZIP 318 natively can do this for you.
+        </p>
+      </div>
+      <Timeline plan={plan} onReshuffle={onReshuffle} />
+    </article>
+  );
+}
+
+function Timeline({ plan, onReshuffle }: { plan: PlanView; onReshuffle: () => void }) {
   const { sched, nowTip } = plan;
   const now = Date.now();
   const timeAt = (h: number) => new Date(now + (h - nowTip) * BLOCK_SECONDS * 1000);
@@ -339,10 +436,11 @@ function Timeline({
     .sort((a, b) => a.height - b.height)
     .map((p) => {
       const px = x(p.height);
-      let row = rows.findIndex((end) => end < px - 4);
+      const cx = Math.min(px - 2, W - 67); // where the label box actually starts
+      let row = rows.findIndex((end) => end < cx - 4);
       if (row < 0) row = rows.length;
-      rows[row] = px + 64;
-      return { ...p, px, row };
+      rows[row] = cx + 66;
+      return { ...p, px, cx, row };
     });
   const H = 56 + rows.length * 22;
   const hours = ((h1 - h0) * BLOCK_SECONDS) / 3600;
@@ -353,14 +451,14 @@ function Timeline({
     <div className="timeline">
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <span className="label">
-          Schedule · from est. height <b>{num(nowTip)}</b> (now) · 75 s per block
+          Schedule · starting now (est. block <b>{num(nowTip)}</b>) · times in your time zone
         </span>
         <button type="button" className="btn ghost sm" onClick={onReshuffle}>
           Draw a new schedule
         </button>
       </div>
-      <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ minWidth: 560 }} role="img" aria-label={`${sched.length} transfers spread over about ${Math.round(hours)} hours`}>
+      <div className="timeline-svg">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${sched.length} transfers spread over about ${Math.round(hours)} hours`}>
         <line x1={PADX} x2={W - PADX} y1={24} y2={24} stroke="var(--line-2)" />
         {ticks.map((t) => {
           const tx = x(h0 + (t * 3600) / BLOCK_SECONDS);
@@ -379,8 +477,8 @@ function Timeline({
             <g key={i}>
               <line x1={p.px} x2={p.px} y1={24} y2={y - 8} stroke="var(--accent)" strokeOpacity="0.5" />
               <circle cx={p.px} cy={24} r={3} fill="var(--accent)" />
-              <rect x={Math.min(p.px - 2, W - 67)} y={y - 8} width={66} height={16} fill="var(--bg)" stroke="var(--line-2)" />
-              <text x={Math.min(p.px - 2, W - 67) + 6} y={y + 3} style={{ fill: 'var(--ink)', fontSize: 10 }}>
+              <rect x={p.cx} y={y - 8} width={66} height={16} fill="var(--bg)" stroke="var(--line-2)" />
+              <text x={p.cx + 6} y={y + 3} style={{ fill: 'var(--ink)', fontSize: 10 }}>
                 {zec(p.amount)}
               </text>
             </g>
@@ -393,12 +491,14 @@ function Timeline({
           .sort((a, b) => a.height - b.height)
           .map((p, i) => (
             <li key={i} className="part">
-              <span className="amt">{zec(p.amount)} ZEC</span>
+              <span className="amt">{zecRead(p.amount)} ZEC</span>
               <span className="dim mono">
                 #{num(p.height)} · {fmtClock(timeAt(p.height))}
               </span>
               <br />
-              <span className="dim">crowd: {num(plan.crowd.get(p.amount) ?? 1)} recent look-alikes</span>
+              <span className="dim">
+                hides among {plural((plan.crowd.get(p.amount) ?? 1) - 1, 'recent look-alike')}
+              </span>
             </li>
           ))}
       </ol>

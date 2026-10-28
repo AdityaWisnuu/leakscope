@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { CheckLink } from './CheckLink';
 import { EXPLORER } from '@/lib/constants';
 import { shortTx } from '@/lib/format';
 import type { Severity } from '@/lib/types';
@@ -17,9 +17,9 @@ export function TxRef({ txid, full = false, check = true, explorer = true }: { t
         {full ? txid : shortTx(txid, 10)}
       </code>
       {check && (
-        <Link className="ext" href={`/check/#${txid}`}>
+        <CheckLink className="ext" txid={txid}>
           check
-        </Link>
+        </CheckLink>
       )}
       {explorer && (
       <a className="ext" href={`${EXPLORER}${txid}`} target="_blank" rel="noopener noreferrer" title={EXPLORER_NOTE}>

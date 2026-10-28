@@ -21,6 +21,7 @@ const TOC = [
   ['validation', 'How we validated'],
   ['data', 'Data'],
   ['privacy', 'This site’s own privacy'],
+  ['responsible', 'Responsible publication'],
 ];
 
 export default function MethodPage() {
@@ -179,9 +180,16 @@ export default function MethodPage() {
             <code>engine/scripts/evaluate.ts</code>.
           </p>
           <p>
-            The headline, <strong>{s.deshieldsLinkedAnyWayPct}%</strong>, is the share of deshielding transactions
-            that are linked either backwards by a calibrated amount link ({num(s.linkableDeshields)}) or forwards by a
-            round trip ({num(s.deshieldsLinkedAnyWay - s.linkableDeshields)} more), out of {num(s.deshieldTxs)}.
+            The headline, <strong>{s.deshieldsLinkedAnyWayPct}%</strong>, is the share of the {num(s.deshieldTxs)}{' '}
+            deshielding transactions that are linked in one of two ways. <strong>Backwards</strong>, to their deposit,
+            by a calibrated amount link: {num(s.linkableDeshields)} ({s.linkableDeshieldsPct}%). <strong>Forwards</strong>{' '}
+            by a round trip, the coins going to a t-address and being shielded again:{' '}
+            {num(s.deshieldsLinkedAnyWay - s.linkableDeshields)} more (
+            {((100 * (s.deshieldsLinkedAnyWay - s.linkableDeshields)) / s.deshieldTxs).toFixed(1)}%). A round trip
+            is certain, since the same coins move, but it is often a wallet auto-shielding its own change and may not
+            reveal a new identity. The Observatory&apos;s &ldquo;{num(s.roundTrips)} round trips&rdquo; counts every
+            round-trip finding; the {num(s.deshieldsLinkedAnyWay - s.linkableDeshields)} here counts withdrawals, leaving
+            out those already linked by amount.
           </p>
 
           <h2 id="assumptions">Assumptions</h2>
@@ -266,11 +274,13 @@ export default function MethodPage() {
           <p>
             The <Link href="/scan/">wallet scan</Link> reproduces this from that wallet&apos;s public viewing key.
           </p>
-          <h3>Regtest and unit tests</h3>
+          <h3>Regtest, CI and unit tests</h3>
           <p>
-            On a private regtest chain we reproduced each leak class in scripted scenarios, so each detector was checked
-            against transactions whose owners we know. The engine&apos;s unit tests cover every detector and the ZIP-318
-            planner, and the transaction parser is tested against real mainnet transactions.
+            The detectors were validated on our own deliberate testnet transactions above, and that check now re-runs in
+            CI ({REPO_URL ? <a href={`${REPO_URL}/tree/main/validation`}>validation/</a> : <code>validation/</code>}). A
+            private regtest chain was used to establish what each transaction type exposes to an observer. The
+            engine&apos;s unit tests cover every detector and the ZIP-318 planner, and the transaction parser is tested
+            against real mainnet transactions.
           </p>
           <h3>Mainnet spot checks against an independent explorer</h3>
           <p>
@@ -332,24 +342,42 @@ export default function MethodPage() {
 
           <h2 id="privacy">This site&apos;s own privacy</h2>
           <ul>
-            <li>Static files only: no server code, no analytics, no cookies, no third-party scripts or fonts at runtime.</li>
+            <li>
+              Static files only: no Leakscope backend, no analytics, no cookies, no third-party scripts or fonts at
+              runtime. The one outside service is the public lightwalletd proxy that <strong>Scan</strong> reads
+              compact blocks from (see below).
+            </li>
             <li>
               <strong>Check</strong> requests one shard named by the first byte of the txid (shared by about 1/256 of
               all transactions), or every shard in paranoid mode. The txid stays after the <code>#</code> in the URL,
               which browsers never send.
             </li>
             <li>
-              <strong>Pre-flight</strong> downloads the same public index for everyone and computes locally.
+              A link to <strong>Check</strong> with a txid in it does not look anything up until you press the button.
+            </li>
+            <li>
+              <strong>Pre-flight</strong> downloads the same public index and the full boundary-address set for every
+              visitor, on page load, and computes locally.
             </li>
             <li>
               <strong>Scan</strong> keeps the viewing key inside a WebAssembly module in the tab. Blocks come from a
-              public proxy that learns only the height range and your IP address.
+              public lightwalletd proxy run by ChainSafe, which learns only the height range (start rounded down to a
+              multiple of 1,000) and your IP address. &ldquo;Forget key &amp; reload&rdquo; clears the key from memory.
             </li>
             <li>
               Explorer links are opt-in and labelled: following one tells that explorer which transaction you care
               about.
             </li>
           </ul>
+
+          <h2 id="responsible">Responsible publication</h2>
+          <p>
+            Everything shown here is derived only from the public Zcash chain, which anyone can download. We use no
+            off-chain data and attach no identities: no names, no exchange labels, no IP addresses. We publish aggregate
+            statistics and a few example links to show how real the risk is and how to avoid it, not to target anyone.
+            The same analysis is already available to anyone patient enough to run it; Leakscope points it at your own
+            transactions first.
+          </p>
         </article>
       </div>
     </div>

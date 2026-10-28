@@ -70,9 +70,9 @@ let corePromise: Promise<WasmCore> | null = null;
 /** Loads and instantiates the WASM scanner (≈540 KB, once). */
 export function loadCore(): Promise<WasmCore> {
   corePromise ??= (async () => {
-    // A runtime URL import the bundler must not try to resolve.
-    const importUrl = new Function('u', 'return import(u)') as (u: string) => Promise<WasmCore>;
-    const mod = await importUrl(WASM_URL);
+    // A runtime URL import the bundler must not try to resolve. A plain dynamic import (no
+    // eval/new Function) so a strict Content-Security-Policy can allow it.
+    const mod = (await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ WASM_URL)) as WasmCore;
     await mod.default();
     return mod;
   })();
@@ -92,6 +92,11 @@ export async function inspectKey(ufvk: string): Promise<{ network: Network; pool
 }
 
 const CHUNK = 1000;
+/**
+ * Requests start at a multiple of this, so the block proxy sees a coarse start height rather
+ * than the wallet's exact birthday. Results are filtered back to the requested range locally.
+ */
+export const START_GRANULARITY = 1000;
 const yieldToUi = () => new Promise((r) => setTimeout(r, 0));
 
 export const scanWallet: ScanWallet = async (ufvk, from, to, onProgress, signal) => {
@@ -102,22 +107,24 @@ export const scanWallet: ScanWallet = async (ufvk, from, to, onProgress, signal)
     const proxy = PROXIES[network];
     const end = to === 'tip' ? await latestHeight(proxy, signal) : to;
     if (end < from) throw new Error(`Start height ${from} is above the end height ${end}.`);
-    const owned: OwnedTx[] = [];
+    const fetchFrom = Math.max(1, Math.floor(from / START_GRANULARITY) * START_GRANULARITY);
+    const all: OwnedTx[] = [];
     let done = 0, last = 0;
-    for (let start = from; start <= end; start += CHUNK) {
+    for (let start = fetchFrom; start <= end; start += CHUNK) {
       const stop = Math.min(end, start + CHUNK - 1);
       for await (const block of compactBlocks(proxy, start, stop, signal)) {
-        owned.push(...scanner.scanBlock(block));
+        all.push(...scanner.scanBlock(block));
         done++;
         const now = performance.now();
         if (now - last > 120) {
           last = now;
-          onProgress({ height: from + done - 1, from, to: end, notes: scanner.notesFound, txs: owned.length });
+          onProgress({ height: fetchFrom + done - 1, from: fetchFrom, to: end, notes: scanner.notesFound, txs: all.filter((t) => t.height >= from).length });
           await yieldToUi();
         }
       }
     }
-    onProgress({ height: end, from, to: end, notes: scanner.notesFound, txs: owned.length });
+    const owned = all.filter((t) => t.height >= from);
+    onProgress({ height: end, from: fetchFrom, to: end, notes: scanner.notesFound, txs: owned.length });
     const txids = [...new Set(owned.map((t) => t.txid))];
     return { txids, owned, network, pools: [...scanner.pools] };
   } finally {

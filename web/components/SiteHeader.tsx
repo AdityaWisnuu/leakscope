@@ -4,14 +4,15 @@ import { usePathname } from 'next/navigation';
 import { REPO_URL } from '@/lib/constants';
 
 const NAV = [
-  { href: '/', label: 'Observatory', n: '01' },
-  { href: '/check/', label: 'Check a tx', n: '02' },
-  { href: '/plan/', label: 'Pre-flight', n: '03' },
-  { href: '/scan/', label: 'Scan wallet', n: '04' },
-  { href: '/method/', label: 'Method', n: '05' },
+  { href: '/', label: 'Observatory', short: 'Home', n: '01' },
+  { href: '/check/', label: 'Check a tx', short: 'Check', n: '02' },
+  { href: '/plan/', label: 'Pre-flight', short: 'Pre-flight', n: '03' },
+  { href: '/scan/', label: 'Scan wallet', short: 'Scan', n: '04' },
+  { href: '/method/', label: 'Method', short: 'Method', n: '05' },
 ];
 
-export function SiteHeader({ range }: { range: string }) {
+/** range: block heights, e.g. "3,428,143–3,515,250"; span: the same as dates, e.g. "28 Jul – 12 Oct 2026". */
+export function SiteHeader({ range, span }: { range: string; span: string }) {
   const path = usePathname() ?? '/';
   const norm = (p: string) => (p.endsWith('/') ? p : `${p}/`);
   return (
@@ -31,16 +32,20 @@ export function SiteHeader({ range }: { range: string }) {
                     <span className="nav-n" aria-hidden>
                       {n.n}
                     </span>
-                    {n.label}
+                    <span className="nav-long">{n.label}</span>
+                    <span className="nav-short">{n.short}</span>
                   </Link>
                 </li>
               );
             })}
           </ul>
         </nav>
-        <p className="readout mono" aria-label={`Indexed mainnet blocks ${range}`}>
-          <span className="dot" aria-hidden /> MAINNET <span className="dim">{range}</span>
+        <p className="readout mono" title={`Zcash mainnet blocks ${range}`} aria-label={`Data covers ${span}, mainnet blocks ${range}`}>
+          <span className="dot" aria-hidden /> DATA <span className="dim">{span.toUpperCase()}</span>
         </p>
+        <Link className="repo-link mono dev-link" href="/#developers">
+          Developers
+        </Link>
         {REPO_URL && (
           <a className="repo-link mono" href={REPO_URL} target="_blank" rel="noopener noreferrer">
             GitHub ↗

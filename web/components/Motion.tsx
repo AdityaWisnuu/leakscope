@@ -10,7 +10,7 @@ gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText);
 const reduced = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** Fades children marked `data-reveal` up into place as they scroll in. Content is visible without JS. */
-export function Reveal({ children, className, as: Tag = 'div' }: { children: React.ReactNode; className?: string; as?: 'div' | 'section' }) {
+export function Reveal({ children, className, id, as: Tag = 'div' }: { children: React.ReactNode; className?: string; id?: string; as?: 'div' | 'section' }) {
   const ref = useRef<HTMLDivElement>(null);
   useGSAP(
     () => {
@@ -29,7 +29,7 @@ export function Reveal({ children, className, as: Tag = 'div' }: { children: Rea
     { scope: ref },
   );
   return (
-    <Tag ref={ref} className={className}>
+    <Tag ref={ref} className={className} id={id}>
       {children}
     </Tag>
   );

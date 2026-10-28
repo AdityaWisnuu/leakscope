@@ -4,7 +4,7 @@ import { PrivacyNote, TxRef } from '@/components/Bits';
 import { FindingCard } from '@/components/FindingCard';
 import { IRONWOOD_ACTIVATION } from '@/lib/constants';
 import { num, SEVERITY_ORDER, zec } from '@/lib/format';
-import { PROXIES, scanWallet, TESTNET_DEMO, type Network, type OwnedTx, type ScanProgress } from '@/lib/scanner';
+import { PROXIES, scanWallet, START_GRANULARITY, TESTNET_DEMO, type Network, type OwnedTx, type ScanProgress } from '@/lib/scanner';
 import { DATASETS, findingsFor, loadAllShards } from '@/lib/shards';
 import type { Finding, Summary } from '@/lib/types';
 
@@ -24,6 +24,9 @@ interface Report {
   range: Summary['range'] | null;
   scanned: { from: number; to: number };
 }
+
+/** Twelve or more plain words: almost certainly a seed phrase, which must never be pasted anywhere. */
+const looksLikeSeed = (k: string) => /^([a-z]+\s+){11,}[a-z]+$/i.test(k.trim());
 
 const networkOf = (k: string): Network | null =>
   /^uviewtest1/.test(k.trim()) ? 'test' : /^uview1/.test(k.trim()) ? 'main' : null;
@@ -47,6 +50,13 @@ export function ScanClient() {
 
   const run = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (looksLikeSeed(ufvk)) {
+      setPhase({
+        k: 'error',
+        msg: 'That looks like a seed phrase. Never paste it into any website. Delete it now: Leakscope did not send it anywhere, but treat it as exposed if you pasted it elsewhere.',
+      });
+      return;
+    }
     if (!net) {
       setPhase({ k: 'error', msg: 'That does not look like a unified full viewing key (uview1… or uviewtest1…).' });
       return;
@@ -100,9 +110,6 @@ export function ScanClient() {
           <span className="label">
             Input · <b>viewing key</b>
           </span>
-          <button type="button" className="btn ghost sm" onClick={loadDemo} disabled={busy}>
-            Use testnet demo key
-          </button>
         </div>
         <div className="panel-body form-stack">
           <label className="field">
@@ -120,11 +127,26 @@ export function ScanClient() {
               style={{ fontSize: 13 }}
             />
             <span className="hint">
-              {net
-                ? `${net === 'main' ? 'Mainnet' : 'Testnet'} key · blocks from ${PROXIES[net].replace('https://', '')}`
-                : 'A viewing key can see your transactions but cannot spend. Never paste a seed phrase or spending key.'}
+              {looksLikeSeed(ufvk)
+                ? 'That looks like a seed phrase. Never paste it into any website. Delete it now.'
+                : net
+                  ? `${net === 'main' ? 'Mainnet' : 'Testnet'} key · blocks from ${PROXIES[net].replace('https://', '')}`
+                  : 'A viewing key can see your transactions but cannot spend. Never paste a seed phrase or spending key.'}
             </span>
           </label>
+          <button type="button" className="btn ghost" onClick={loadDemo} disabled={busy} style={{ width: '100%' }}>
+            No key? Try a demo wallet (testnet, about 15 s)
+          </button>
+          <details className="helper">
+            <summary>What is a viewing key, and where do I find mine?</summary>
+            <p>
+              A viewing key lets an app <strong>see</strong> your transactions but <strong>never spend</strong> them.
+              Leakscope needs a <em>unified full viewing key</em>, which starts with <code className="mono">uview1</code>.
+              Wallets that can export one usually list it under settings, backup or account details, as a viewing key or
+              UFVK. Only ever paste a viewing key: never a seed phrase or a spending key. If your wallet can&apos;t export
+              one, use <a href="/check/">Check a transaction</a> or <a href="/plan/">Pre-flight</a> instead.
+            </p>
+          </details>
           <div className="row2">
             <label className="field">
               <span>From height</span>
@@ -151,7 +173,10 @@ export function ScanClient() {
           </div>
           <p className="hint small dim" style={{ margin: 0 }}>
             Start at or before your wallet&apos;s birthday, or spends of earlier notes are missed. Mainnet defaults to
-            Ironwood activation ({num(IRONWOOD_ACTIVATION)}); scanning runs at roughly 200 blocks per second.
+            Ironwood activation ({num(IRONWOOD_ACTIVATION)}); scanning runs at roughly 200 blocks per second, so a scan
+            from there takes about 10 minutes: keep this tab open. To avoid revealing your exact birthday, blocks are
+            requested from the nearest lower multiple of {num(START_GRANULARITY)}; results are trimmed back to your
+            range here.
           </p>
           <label className="check">
             <input type="checkbox" checked={allShards} onChange={(e) => setAllShards(e.target.checked)} disabled={busy} />
@@ -173,12 +198,15 @@ export function ScanClient() {
               <button
                 type="button"
                 className="btn ghost"
+                title="Clears the key and reloads the page, so no copy of it stays in this tab's memory."
                 onClick={() => {
                   setUfvk('');
                   setPhase({ k: 'idle' });
+                  // Reloading drops the WASM instance and any strings still holding the key.
+                  location.reload();
                 }}
               >
-                Forget key
+                Forget key &amp; reload
               </button>
             )}
           </div>
@@ -191,7 +219,8 @@ export function ScanClient() {
             <strong>Your key never leaves this tab.</strong> The scanner is WebAssembly running on your device. It
             downloads <em>every</em> compact block in the range from a public lightwalletd proxy and trial-decrypts them
             here, so the proxy learns only the height range and your IP address, not which transactions are yours.
-            Findings are matched against static files from this site. Nothing is stored.
+            Findings are matched against static files from this site. Nothing is stored; &ldquo;Forget key &amp;
+            reload&rdquo; clears it from memory.
           </PrivacyNote>
         </div>
         <Status phase={phase} />
@@ -300,14 +329,24 @@ function ReportView({ r }: { r: Report }) {
             {r.range
               ? `Findings cover the indexed range, blocks ${num(r.range.from)}–${num(r.range.to)}. Transactions outside it are listed but not analysed. `
               : ''}
-            Transparent-only activity is not visible to a viewing-key scan.
+            Transparent-only activity is not visible to a viewing-key scan. Block-explorer links are left out here:
+            opening one would tell the explorer which transaction is yours. Copy an id if you need to look it up.
           </p>
+          {leaky.length > 0 && (
+            <div className="callout" style={{ margin: '14px 0 0' }}>
+              <p>
+                Most leaks come from two habits: sending to and from transparent (t1…) addresses, and moving unusual
+                exact amounts. Use a fresh address each time, don&apos;t re-shield coins you just deshielded, and stick
+                to standard amounts (1, 2, 5, 10… ZEC). Staying shielded avoids all of them.
+              </p>
+            </div>
+          )}
         </div>
       </div>
       {leaky.map((t) => (
         <section key={t} className="stack" style={{ gap: 8 }}>
           <div className="label" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
-            <TxRef txid={t} check={r.network === 'main'} explorer={r.network === 'main'} />
+            <TxRef txid={t} full check={r.network === 'main'} explorer={false} />
             {byTx.get(t) && (
               <span>
                 block {num(byTx.get(t)!.height)} · {flow(byTx.get(t)!)}
@@ -315,7 +354,7 @@ function ReportView({ r }: { r: Report }) {
             )}
           </div>
           {r.findings.get(t)!.map((f, i) => (
-            <FindingCard key={i} f={f} focus={t} mainnet={r.network === 'main'} />
+            <FindingCard key={i} f={f} focus={t} mainnet={r.network === 'main'} explorer={false} advice />
           ))}
         </section>
       ))}
@@ -327,7 +366,7 @@ function ReportView({ r }: { r: Report }) {
           <ul style={{ listStyle: 'none', padding: 0, margin: '12px 0 0', display: 'grid', gap: 6 }}>
             {clean.map((t) => (
               <li key={t} className="small">
-                <TxRef txid={t} check={r.network === 'main'} explorer={r.network === 'main'} />{' '}
+                <TxRef txid={t} check={r.network === 'main'} explorer={false} />{' '}
                 {byTx.get(t) && <span className="dim">block {num(byTx.get(t)!.height)} · {flow(byTx.get(t)!)}</span>}
               </li>
             ))}

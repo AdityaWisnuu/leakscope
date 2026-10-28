@@ -4,9 +4,9 @@ import { FindingCard, KIND_LABEL } from '@/components/FindingCard';
 import { Glyph } from '@/components/Glyph';
 import { CountUp, Reveal, SplitHeadline } from '@/components/Motion';
 import { ScopeViz } from '@/components/ScopeViz';
-import { IRONWOOD_ACTIVATION } from '@/lib/constants';
-import { getDays, getExamples, getSummary } from '@/lib/data.server';
-import { fmtDate, num, pct } from '@/lib/format';
+import { IRONWOOD_ACTIVATION, REPO_URL } from '@/lib/constants';
+import { getCoverage, getDays, getExamples, getSummary } from '@/lib/data.server';
+import { num, pct } from '@/lib/format';
 import type { FindingKind } from '@/lib/types';
 
 const CLASSES: { kind: FindingKind; name: string; body: string }[] = [
@@ -42,23 +42,28 @@ const CLASSES: { kind: FindingKind; name: string; body: string }[] = [
   },
 ];
 
+const REPO = REPO_URL || 'https://github.com/AdityaWisnuu/leakscope';
+const SDK_TGZ = 'https://github.com/AdityaWisnuu/leakscope/releases/download/engine-v0.1.0/leakscope-engine-0.1.0.tgz';
+
 export default function Observatory() {
   const s = getSummary();
   const days = getDays();
   const examples = getExamples();
   const sinceLaunch = s.range.from <= IRONWOOD_ACTIVATION + 1152;
   const m = s.migrations;
+  const c = getCoverage();
+  const forward = s.deshieldsLinkedAnyWay - s.linkableDeshields;
+  const fastPrecision = s.amountLinks?.fast?.precision;
   return (
     <>
       <section className="hero wrap">
         <span className="label" style={{ display: 'block', marginBottom: 28 }}>
-          Observatory · Zcash mainnet · blocks <b>{num(s.range.from)}–{num(s.range.to)}</b> ·{' '}
-          {fmtDate(days[0]?.time ?? 0)} → {fmtDate(days.at(-1)?.time ?? 0)}
+          Observatory · Zcash mainnet · blocks <b>{num(c.from)}–{num(c.to)}</b> · {c.fromDate} → {c.toDate}
         </span>
         <div className="hero-grid">
           <SplitHeadline className="hero-big">
             <span className="figure">{s.deshieldsLinkedAnyWayPct}%</span> of withdrawals{' '}
-            {sinceLaunch ? 'since Ironwood launched' : 'in this range'} can be traced.
+            {sinceLaunch ? 'since Ironwood launched' : 'in this range'} can be linked.
           </SplitHeadline>
           <div className="hero-side">
             <p>
@@ -67,23 +72,56 @@ export default function Observatory() {
             </p>
             <p>
               Of <strong className="num">{num(s.deshieldTxs)}</strong> transactions that withdrew to transparent
-              addresses, <strong className="num">{num(s.linkableDeshields)}</strong> match exactly one earlier
-              deposit plus their own fee, and{' '}
-              <strong className="num">{num(s.deshieldsLinkedAnyWay - s.linkableDeshields)}</strong> more were spent
-              straight back into a pool. No cryptography was broken, and we{' '}
-              <Link href="/method/#accuracy">measured how often these links are wrong</Link>. Leakscope plays that
-              observer, so you can see what it sees before you transact.
+              addresses, <strong className="num">{num(s.linkableDeshields)}</strong> ({s.linkableDeshieldsPct}%) are
+              linked <em>back</em> to their deposit by exact amount plus fee
+              {fastPrecision ? ` (measured ≈${fastPrecision}% precision for the fastest tier)` : ''}, and another{' '}
+              <strong className="num">{num(forward)}</strong> ({pct(forward, s.deshieldTxs).toFixed(1)}%) are linked{' '}
+              <em>forward</em> by a round trip: the coins went to a t-address and were shielded again. A round trip is
+              certain, since the same coins move, but it is often a wallet auto-shielding and may not reveal a new
+              identity. No cryptography was broken, and we{' '}
+              <Link href="/method/#accuracy">measured how often these links are wrong</Link>.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 24 }}>
               <Link className="btn" href="/check/">
                 Check a transaction
               </Link>
               <Link className="btn ghost" href="/plan/">
-                Plan a migration
+                Check before you send
               </Link>
             </div>
+            <p className="media-links" style={{ marginTop: 18 }}>
+              <a href="/demo.mp4">▶ Watch the 2-minute demo</a>
+              <a href="/deck.pdf">Pitch deck (PDF)</a>
+              <Link href="/#developers">For wallet developers →</Link>
+            </p>
           </div>
         </div>
+
+        <section aria-labelledby="start-here" style={{ margin: '8px 0 0' }}>
+          <h2 id="start-here" className="label" style={{ marginBottom: 14, fontWeight: 400 }}>
+            Start here · am I leaking?
+          </h2>
+          <div className="start-grid">
+            <Link className="start-card" href="/check/">
+              <span className="label">Already sent it?</span>
+              <h3 className="h3">Check a transaction</h3>
+              <p>Paste a transaction id from your wallet&apos;s history and see what anyone can link it to.</p>
+              <span className="go">Check a transaction →</span>
+            </Link>
+            <Link className="start-card" href="/plan/">
+              <span className="label">About to send?</span>
+              <h3 className="h3">Plan a withdrawal</h3>
+              <p>Before you withdraw, shield or migrate, see how private it will be and how to make it blend in.</p>
+              <span className="go">Plan a withdrawal →</span>
+            </Link>
+            <Link className="start-card" href="/scan/">
+              <span className="label">Want a full check-up?</span>
+              <h3 className="h3">Scan my wallet</h3>
+              <p>Uses a read-only viewing key, entirely on your device, to find which of your transactions leak.</p>
+              <span className="go">Scan my wallet →</span>
+            </Link>
+          </div>
+        </section>
 
         <div className="stats" style={{ marginBottom: 40 }}>
           <div className="stat">
@@ -94,7 +132,11 @@ export default function Observatory() {
           <div className="stat">
             <span className="label">Round trips</span>
             <CountUp className="v accent" value={s.roundTrips} />
-            <p>times deshielded coins were spent straight back into a pool: linked with certainty.</p>
+            <p>
+              round-trip findings: a deshielded output spent straight back into a pool, linked with certainty. Counted
+              per round trip, not per withdrawal; the {num(forward)} above counts withdrawals not already linked by
+              amount.
+            </p>
           </div>
           <div className="stat">
             <span className="label">Orchard → Ironwood</span>
@@ -181,7 +223,10 @@ export default function Observatory() {
           <h2 className="h2">
             See it before <em>they</em> do.
           </h2>
-          <p>Three tools, all running in your browser. Nothing you type is sent anywhere.</p>
+          <p>
+            Three tools, all running in your browser. What you type stays in your tab; /check asks the server only for a
+            1-in-256 shard named by the first two characters of the txid.
+          </p>
         </div>
         <div className="classes" data-reveal>
           {[
@@ -200,6 +245,59 @@ export default function Observatory() {
               </div>
             </Link>
           ))}
+        </div>
+      </Reveal>
+      <Reveal as="section" className="section wrap" id="developers">
+        <div className="section-head" data-reveal>
+          <span className="label">05 · For wallet developers</span>
+          <h2 className="h2">
+            Put the check on your <em>Send</em> screen.
+          </h2>
+          <p>
+            The engine behind Pre-flight ships in the repository as a library, <code>@leakscope/engine</code>. It runs
+            the same checks in Node or the browser, against our public dataset or your own copy. No server, no keys, no
+            runtime dependencies.
+          </p>
+        </div>
+        <div className="dev-grid" data-reveal>
+          <div className="stack">
+            <p style={{ margin: 0 }}>
+              Before the user confirms, call <code>checkSend</code> with the planned transfer. You get a level, a 0–100
+              score, a one-line headline for the confirmation screen, and a ZIP-318 split when one would help.
+            </p>
+            <p className="small dim" style={{ margin: 0 }}>
+              Install from the repository&apos;s release (npm publish pending):
+            </p>
+            <pre className="code" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>npm install {SDK_TGZ}</pre>
+            <p className="media-links" style={{ margin: 0 }}>
+              <a href={`${REPO}/tree/main/engine`} target="_blank" rel="noopener noreferrer">
+                engine/ source &amp; API ↗
+              </a>
+              <a href={`${REPO}/tree/main/examples`} target="_blank" rel="noopener noreferrer">
+                Working examples ↗
+              </a>
+            </p>
+            <p className="small dim" style={{ margin: 0 }}>
+              Two examples: a Node pre-flight prompt and a wallet &ldquo;Confirm send&rdquo; screen in one HTML file.
+              Dual-licensed MIT / Apache-2.0.
+            </p>
+          </div>
+          <pre className="code" aria-label="Example: checkSend">
+{`import { checkSend, loadPublishedContext } from '@leakscope/engine';
+
+`}<span className="c">{`// public mainnet dataset, load once`}</span>{`
+const ctx = await loadPublishedContext();
+
+const v = checkSend(
+  { from: 'orchard', to: 'transparent',
+    amountZat: 1_234_560_000, toAddress: 't1...' },
+  ctx,
+);
+console.log(v.level, v.score, v.headline);
+`}<span className="c">{`// 'danger' 5 '12.3456 ZEC would be unique on-chain: ...'`}</span>{`
+if (v.suggestedSplit) console.log(v.suggestedSplit.parts);
+`}<span className="c">{`// [{ amountZat: 1e9, crowd: 501 }, ...]`}</span>
+          </pre>
         </div>
       </Reveal>
     </>
