@@ -1,0 +1,12 @@
+{
+  "name": "leakscope-example-node-preflight",
+  "private": true,
+  "type": "module",
+  "description": "A wallet asks Leakscope before it sends.",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@leakscope/engine": "file:../../engine"
+  }
+}

@@ -1,16 +1,60 @@
 {
   "name": "@leakscope/engine",
   "version": "0.1.0",
-  "private": true,
+  "description": "Pre-flight privacy checks for Zcash wallets: will this send leak, and how to do it without the leak (ZIP-318 splits). Runs locally in Node and browsers.",
+  "license": "MIT OR Apache-2.0",
   "type": "module",
-  "main": "src/index.ts",
-  "scripts": {
-    "test": "bun test"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AdityaWisnuu/leakscope.git",
+    "directory": "engine"
   },
-  "dependencies": {
-    "@noble/hashes": "1.8.0"
+  "homepage": "https://leakscope-cyan.vercel.app",
+  "bugs": "https://github.com/AdityaWisnuu/leakscope/issues",
+  "keywords": [
+    "zcash",
+    "privacy",
+    "wallet",
+    "zip-318",
+    "shielded",
+    "preflight",
+    "ironwood"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "test": "bun test",
+    "typecheck": "tsc -p tsconfig.json",
+    "prepack": "bun scripts/build.ts"
   },
   "devDependencies": {
+    "@noble/hashes": "1.8.0",
     "@types/bun": "^1.4.3",
     "typescript": "^7.0.2"
   }

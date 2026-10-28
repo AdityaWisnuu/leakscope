@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wallet Confirm Send</title>
+<style>
+  :root {
+    --bg: #eceae4; --phone: #ffffff; --ink: #16161a; --muted: #6b6b75; --line: #e4e2dc;
+    --field: #f6f5f1; --accent: #f4b728; --accent-ink: #1b1400;
+    --ok: #1f8a4c; --ok-bg: #e6f5ec; --warn: #a86400; --warn-bg: #fff3dc; --danger: #c0322b; --danger-bg: #fdebea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d0d10; --phone: #17171c; --ink: #f2f1ee; --muted: #9d9ca6; --line: #2a2a31;
+      --field: #1f1f25; --ok-bg: #12301f; --warn-bg: #33270c; --danger-bg: #3a1513; --ok: #5fd08f; --warn: #f2b54a; --danger: #ff7a70;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d0d10; --phone: #17171c; --ink: #f2f1ee; --muted: #9d9ca6; --line: #2a2a31;
+    --field: #1f1f25; --ok-bg: #12301f; --warn-bg: #33270c; --danger-bg: #3a1513; --ok: #5fd08f; --warn: #f2b54a; --danger: #ff7a70;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+    font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px;
+  }
+  .phone {
+    width: 100%; max-width: 400px; background: var(--phone); border-radius: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.12), 0 0 0 1px var(--line); overflow: hidden;
+  }
+  header { display: flex; align-items: center; gap: 10px; padding: 18px 20px 6px; }
+  header .back { font-size: 20px; color: var(--muted); }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; }
+  .body { padding: 8px 20px 20px; }
+  .amount { text-align: center; padding: 14px 0 6px; }
+  .amount input {
+    font: 650 34px/1.1 ui-sans-serif, system-ui, sans-serif; color: var(--ink); background: none;
+    border: 0; width: 100%; text-align: center; outline: none; font-variant-numeric: tabular-nums;
+  }
+  .amount small { color: var(--muted); }
+  .rows { border: 1px solid var(--line); border-radius: 14px; margin: 14px 0; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 14px; }
+  .row + .row { border-top: 1px solid var(--line); }
+  .row label { color: var(--muted); font-size: 13px; flex: none; }
+  .row input, .row select {
+    min-width: 0; flex: 1; text-align: right; background: var(--field); color: var(--ink);
+    border: 1px solid transparent; border-radius: 8px; padding: 6px 8px; font: 13px ui-monospace, Menlo, monospace;
+  }
+  .row select { font-family: inherit; flex: none; }
+  .row span { font-size: 13px; }
+  .shield {
+    border-radius: 16px; padding: 14px; margin: 6px 0 14px; background: var(--field);
+    border: 1px solid var(--line); transition: background .2s;
+  }
+  .shield[data-level="ok"] { background: var(--ok-bg); border-color: transparent; }
+  .shield[data-level="warn"] { background: var(--warn-bg); border-color: transparent; }
+  .shield[data-level="danger"] { background: var(--danger-bg); border-color: transparent; }
+  .shield .top { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .badge {
+    font-weight: 700; font-size: 11px; letter-spacing: .06em; padding: 3px 8px; border-radius: 99px;
+    color: #fff; background: var(--muted);
+  }
+  [data-level="ok"] .badge { background: var(--ok); }
+  [data-level="warn"] .badge { background: var(--warn); }
+  [data-level="danger"] .badge { background: var(--danger); }
+  [data-theme] .badge, :root .badge { color: var(--phone); }
+  .score { margin-left: auto; font-variant-numeric: tabular-nums; }
+  .headline { font-weight: 650; margin: 8px 0 6px; font-size: 15px; }
+  .reasons { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+  .split { margin-top: 12px; border-top: 1px dashed color-mix(in srgb, var(--ink) 20%, transparent); padding-top: 12px; }
+  .split h3 { margin: 0 0 4px; font-size: 14px; }
+  .split p { margin: 0 0 8px; font-size: 12.5px; color: var(--muted); }
+  .parts { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  .parts li {
+    display: flex; justify-content: space-between; font-size: 13px; padding: 6px 10px; border-radius: 8px;
+    background: color-mix(in srgb, var(--phone) 70%, transparent); font-variant-numeric: tabular-nums;
+  }
+  .parts li em { color: var(--muted); font-style: normal; font-size: 12px; }
+  .actions { display: grid; gap: 8px; }
+  button {
+    font: 600 15px/1 inherit; font-family: inherit; border-radius: 14px; padding: 14px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--phone); color: var(--ink);
+  }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .foot { text-align: center; color: var(--muted); font-size: 11.5px; padding: 0 20px 18px; }
+  .toast { text-align: center; font-size: 13px; min-height: 18px; margin-top: 10px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main class="phone">
+  <header><span class="back" aria-hidden="true">&#8592;</span><h1>Confirm send</h1></header>
+  <div class="body">
+    <div class="amount">
+      <input id="amount" value="12.3456" inputmode="decimal" aria-label="Amount in ZEC">
+      <small>ZEC</small>
+    </div>
+    <div class="rows">
+      <div class="row"><label for="to">To</label><input id="to" value="t1TdD3uh5E8UunUUmkeTumPb4823pd9JVUv" spellcheck="false"></div>
+      <div class="row"><label for="from">From</label>
+        <select id="from"><option value="orchard">Orchard balance</option><option value="ironwood">Ironwood balance</option><option value="sapling">Sapling balance</option></select>
+      </div>
+      <div class="row"><label>Network fee</label><span>0.0001 ZEC (ZIP-317)</span></div>
+    </div>
+
+    <section class="shield" id="shield" data-level="" aria-live="polite">
+      <div class="top"><span class="badge" id="badge">CHECKING</span><span>Leakscope pre-flight</span><span class="score" id="score"></span></div>
+      <div class="headline" id="headline">Loading public chain history&hellip;</div>
+      <ul class="reasons" id="reasons"></ul>
+      <div class="split" id="split" hidden>
+        <h3 id="splitTitle"></h3>
+        <p id="splitDetail"></p>
+        <ul class="parts" id="parts"></ul>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="primary" id="useSplit" hidden>Split into ZIP-318 denominations</button>
+      <button id="send">Send anyway</button>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+  <div class="foot">Checked on this device. The only request is a download of Leakscope&rsquo;s public dataset; your amount and address never leave the page.</div>
+</main>
+
+<script type="module">
+  // Served from the repo root: the package's built ESM bundle, no build step here.
+  import { checkSend, loadPublishedContext, fmtZec } from '../../engine/dist/index.js';
+
+  const $ = (id) => document.getElementById(id);
+  // ?data=/web/public/data uses a local copy of the dataset; default is the live site.
+  const baseUrl = new URLSearchParams(location.search).get('data') || undefined;
+  const ctxPromise = loadPublishedContext({ baseUrl });
+
+  async function render() {
+    const ctx = await ctxPromise;
+    const amountZat = Math.round(parseFloat($('amount').value) * 1e8);
+    if (!(amountZat > 0)) return;
+    const to = $('to').value.trim();
+    const v = checkSend({
+      from: $('from').value,
+      to: to.startsWith('t') ? 'transparent' : $('from').value,
+      amountZat,
+      toAddress: to.startsWith('t') ? to : undefined,
+    }, ctx);
+
+    $('shield').dataset.level = v.level;
+    $('badge').textContent = { ok: 'LOOKS PRIVATE', warn: 'CAUTION', danger: 'LINKABLE' }[v.level];
+    $('score').textContent = `score ${v.score}/100`;
+    $('headline').textContent = v.headline;
+    $('reasons').replaceChildren(...v.reasons.slice(0, 3).map((r) => Object.assign(document.createElement('li'), { textContent: r })));
+
+    const s = v.suggestedSplit;
+    $('split').hidden = !s;
+    $('useSplit').hidden = !s;
+    $('send').textContent = v.level === 'ok' ? 'Send' : 'Send anyway';
+    $('send').className = v.level === 'ok' ? 'primary' : '';
+    if (s) {
+      $('splitTitle').textContent = `Safer: ${s.parts.length} standard amounts, spread over ~${Math.round(((s.schedule.at(-1).height - ctx.tip) * 75) / 3600)} h`;
+      $('splitDetail').textContent =
+        `Every ZIP-318 wallet uses these amounts, so each part hides in a crowd of at least ${s.minCrowd.toLocaleString()} ` +
+        `instead of ${v.crowd ?? 1}.` + (s.residualZat ? ` ${fmtZec(s.residualZat)} stays shielded.` : '');
+      $('parts').replaceChildren(...s.parts.map((p) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${fmtZec(p.amountZat)}</span><em>${p.crowd.toLocaleString()} look-alikes</em>`;
+        return li;
+      }));
+    }
+    $('toast').textContent = '';
+  }
+
+  for (const id of ['amount', 'to', 'from']) $(id).addEventListener('input', () => render());
+  $('useSplit').addEventListener('click', () => ($('toast').textContent = 'Queued the split: parts broadcast at random heights.'));
+  $('send').addEventListener('click', () => ($('toast').textContent = 'Demo only: nothing was sent.'));
+  render().catch((e) => {
+    $('headline').textContent = `Could not load the public dataset: ${e.message}`;
+    $('badge').textContent = 'OFFLINE';
+  });
+</script>
+</body>
+</html>
